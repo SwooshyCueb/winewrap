@@ -4,10 +4,15 @@
 # @see Tool for preparing wrapper for wine libraries
 # @copy (c) 2014 Juraj Puchky - Devtech
 # @license GPLv3
+# @version 1.0.1
 #
 
 if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
+Wrappit4wine 
+============
+Version 1.0.1
+
  Usage: $0 [original windows dll file] [Wrapper prefix] [Lookup Headers] [Lookup Libraries] [DEF]
  Legend:
 	Wrapper prefix 		- Functions prefix
