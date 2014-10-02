@@ -6,10 +6,11 @@
 # @license GPLv3
 # @version 1.0.1
 #
+scriptname="wrappit4wine"
 
 if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
-Wrappit4wine 
+$scriptname 
 ============
 Version 1.0.1
 
@@ -127,38 +128,38 @@ if [ ! -f "/usr/bin/dialog" ]; then
 fi
 
 if [ ! -f "/usr/bin/winedump" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1You have to install winedump from wine.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install winedump from wine.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -f "/bin/sed" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1You have to install sed.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install sed.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -f "/usr/bin/tr" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1You have to install tr.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install tr.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -f "/bin/grep" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1You have to install grep.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install grep.\Zn" 6 35
  exit 2;
 fi
 
 
 if [ ! -f "$1" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1Specified library $1 does not exists.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Specified library $1 does not exists.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -d "$3" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1You have to specify existing headers folder.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to specify existing headers folder.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -d "$4" ]; then
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1You have to specify existing library folder.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to specify existing library folder.\Zn" 6 35
  exit 2;
 fi
 
@@ -185,7 +186,7 @@ function progstatus() { #$1=status for func[0]
 }
 
 function progdisplay { # $1=title $2=text $3=percent
- dialog --colors --backtitle "wrappit4wine" \
+ dialog --colors --backtitle "$scriptname" \
         --title "$1" \
         --mixedgauge "$2" \
         $progh $progw "$3" \
@@ -229,7 +230,7 @@ TS=`date +%s%N`;
 PREFIX="$2";
 
 if [ -z "$NOTEDIT" ]; then
-dialog --colors --backtitle "wrappit4wine" --title "Enviromentals" --form "Setup your needs" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "See:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copy:" 5 1 "$COPY" 5 25 25 160 "Home:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
+dialog --colors --backtitle "$scriptname" --title "Enviromentals" --form "Setup your needs" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "See:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copy:" 5 1 "$COPY" 5 25 25 160 "Home:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
 AUTHOR=`cat "/tmp/$TS.form"|head -1|tail -1`;
 DATE=`cat "/tmp/$TS.form"|head -2|tail -1`;
 SEE=`cat "/tmp/$TS.form"|head -3|tail -1`;
@@ -250,7 +251,7 @@ if [ ! -d "$dirname" ]; then
  rm Makefile.in 2> /dev/null
  mv "$SPEC_TARGET" "$SPEC"dirname
 else
- dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$dllname\ZB \Z1already exists.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$dllname\ZB \Z1already exists.\Zn" 6 35
  exit 2;
 fi
 
@@ -413,4 +414,4 @@ done > "$SPEC_TARGET"
 
 cd ..
 CleanUpTemps "$TS";
-if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "wrappit4wine" --title "About" --infobox "\ZbYour wrapper was generated successfully.\ZB\n\n\ZnYou welcome for using wrapper4wine\nwriten by Juraj Puchky - Devtech.\n\n\Z5\"I would like to see your smile\nwhen you will use wrappit for wine.\"\Zn\n\n\Z4http://www.devtech.cz/opensource/wrappit4wine\Zn" 11 50; fi
+if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "About" --infobox "\ZbYour wrapper was generated successfully.\ZB\n\n\ZnYou welcome for using wrapper4wine\nwriten by Juraj Puchky - Devtech.\n\n\Z5\"I would like to see your smile\nwhen you will use wrappit for wine.\"\Zn\n\n\Z4http://www.devtech.cz/opensource/wrappit4wine\Zn" 11 50; fi
