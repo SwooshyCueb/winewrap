@@ -162,6 +162,13 @@ if [ ! -d "$4" ]; then
  exit 2;
 fi
 
+function progdisplay { # $1=title $2=text $3=percent
+  dialog --colors --backtitle "wrappit4wine" \
+         --title "$1" \
+         --mixedgauge "$2" \
+         10 35 "$3"
+}
+
 # Initialize
 dllname=`basename "$1"`;
 dirname=`echo "$dllname"|cut -d\. -f1`;
@@ -234,7 +241,7 @@ p=0;
 cmax=`cat "$dirname.func"|wc -l`;
 cat "$dirname.func"|while read funcName
 do
- dialog --colors --backtitle "wrappit4wine" --mixedgauge "Preparing dependencies..." 10 35 $p
+ progdisplay "Preparing dependencies" "Preparing dependencies..." "$p"
  lookupForLibDeps "$funcName" >> "$TMP_LIBDEPS"
  lookupForLibDepPaths "$funcName" >> "$TMP_LIBDEPPATHS"
  lookupForSourceDeps "$funcName" >> "$TMP_DEPS"
