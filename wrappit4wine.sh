@@ -162,11 +162,43 @@ if [ ! -d "$4" ]; then
  exit 2;
 fi
 
+progh="20"
+progw="80"
+
+function proginit() {
+ func=("-" "-" "-" "-" "-" "-" "-" "-" "-" "-")
+ status=("8" "8" "8" "8" "8" "8" "8" "8" "8" "8")
+ p="0"
+ c="0"
+}
+
+function progpush() { # $1=newfunc $2=status
+ func=("$1" "${func[0]}" "${func[1]}" "${func[2]}" "${func[3]}" \
+  "${func[4]}" "${func[5]}" "${func[6]}" "${func[7]}" "${func[8]}")
+ status=("$2" "${status[0]}" "${status[1]}"  "${status[2]}" \
+   "${status[3]}"  "${status[4]}"  "${status[5]}"  "${status[6]}" \
+    "${status[7]}" "${status[8]}")
+}
+
+function progstatus() { #$1=status for func[0]
+ status[0]=$1
+}
+
 function progdisplay { # $1=title $2=text $3=percent
-  dialog --colors --backtitle "wrappit4wine" \
-         --title "$1" \
-         --mixedgauge "$2" \
-         10 35 "$3"
+ dialog --colors --backtitle "wrappit4wine" \
+        --title "$1" \
+        --mixedgauge "$2" \
+        $progh $progw "$3" \
+        "${func[9]}"  "${status[9]}" \
+        "${func[8]}"  "${status[8]}" \
+        "${func[7]}"  "${status[7]}" \
+        "${func[6]}"  "${status[6]}" \
+        "${func[5]}"  "${status[5]}" \
+        "${func[4]}"  "${status[4]}" \
+        "${func[3]}"  "${status[3]}" \
+        "${func[2]}"  "${status[2]}" \
+        "${func[1]}"  "${status[1]}" \
+        "${func[0]}"  "${status[0]}"
 }
 
 # Initialize
@@ -239,15 +271,30 @@ TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
 c=0;
 p=0;
 cmax=`cat "$dirname.func"|wc -l`;
+proginit
 cat "$dirname.func"|while read funcName
 do
- progdisplay "Preparing dependencies" "Preparing dependencies..." "$p"
+ progpush "$funcName" "-0"
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying required libraries..." "$p"
  lookupForLibDeps "$funcName" >> "$TMP_LIBDEPS"
+ c=`expr $c + 25`;
+ p=`expr $c / $cmax`
+ progstatus "-25"
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying library paths..." "$p"
  lookupForLibDepPaths "$funcName" >> "$TMP_LIBDEPPATHS"
+ c=`expr $c + 25`;
+ p=`expr $c / $cmax`
+ progstatus "-50"
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying required headers..." "$p"
  lookupForSourceDeps "$funcName" >> "$TMP_DEPS"
+ c=`expr $c + 25`;
+ p=`expr $c / $cmax`
+ progstatus "-75"
+ progdisplay "Preparing dependencies" "Current operation:\nSearching for function declaration..." "$p"
  lookupForWrappedSourceDefinition "$funcName" >> "$TMP_WRAPED_DEFS"
- c=`expr $c + 100`
- p=`$c / $cmax`
+ c=`expr $c + 25`
+ p=`expr $c / $cmax`
+ progstatus "3"
 done
 clear
 
