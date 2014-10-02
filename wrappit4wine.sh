@@ -468,6 +468,7 @@ do
 done
 
 # Fixing spec file
+cat "$SPEC"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST"
 SPEC_DEF="@";
 cat "$TMP_SLIST"|while read l
 do
