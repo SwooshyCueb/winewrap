@@ -186,20 +186,22 @@ function progstatus() { #$1=status for func[0]
 }
 
 function progdisplay { # $1=title $2=text $3=percent
- dialog --colors --backtitle "$scriptname" \
-        --title "$1" \
-        --mixedgauge "$2" \
-        $progh $progw "$3" \
-        "${func[9]}"  "${status[9]}" \
-        "${func[8]}"  "${status[8]}" \
-        "${func[7]}"  "${status[7]}" \
-        "${func[6]}"  "${status[6]}" \
-        "${func[5]}"  "${status[5]}" \
-        "${func[4]}"  "${status[4]}" \
-        "${func[3]}"  "${status[3]}" \
-        "${func[2]}"  "${status[2]}" \
-        "${func[1]}"  "${status[1]}" \
-        "${func[0]}"  "${status[0]}"
+ if [ -z "$NOPROGRESS" ]; then
+  dialog --colors --backtitle "$scriptname" \
+         --title "$1" \
+         --mixedgauge "$2" \
+         $progh $progw "$3" \
+         "${func[9]}"  "${status[9]}" \
+         "${func[8]}"  "${status[8]}" \
+         "${func[7]}"  "${status[7]}" \
+         "${func[6]}"  "${status[6]}" \
+         "${func[5]}"  "${status[5]}" \
+         "${func[4]}"  "${status[4]}" \
+         "${func[3]}"  "${status[3]}" \
+         "${func[2]}"  "${status[2]}" \
+         "${func[1]}"  "${status[1]}" \
+         "${func[0]}"  "${status[0]}"
+ fi
 }
 
 # Initialize
