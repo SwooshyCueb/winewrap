@@ -50,13 +50,6 @@ function CleanUpTemps() {
  rm -f "/tmp/$1.*";
 }
 
-function lookupForSourceDefinition() {
-find "$SOURCEPATHS" -type f -iname "*.h" -exec grep "$1 *(.*) *;" {} +|sed -e "s/;$//g"|cut -d: -f1|sort|uniq|while read fh
-do
-  cat "$fh"|sed -e 's/\/\*.*\*\///g'|sed ':a;N;$!ba;s/, *\n/, /g'|sed -e 's/ \+/ /g'|grep "$1 *("
-done
-}
-
 function lookupForWrappedSourceDefinition() {
 find "$SOURCEPATHS" -type f -iname "*.h" -exec grep "$1 *(.*) *;" {} +|sed -e "s/;$//g"|cut -d: -f1|sort|uniq|while read fh
 do
@@ -302,7 +295,26 @@ do
 done
 clear
 
-# Fixing header file
+cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
+
+if [ $cmax == "0" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in dllname with the given headers and libraries." 6 35 
+ exit 1
+fi
+
+# Building c source files
+cat > "$C_TARGET" <<_EOF_
+/*
+ * @author $AUTHOR
+ * @date $DATE
+ * @see Header file $SEE
+ * @license $LICENSE
+ * @copy $COPY
+ * @home $WWW
+ */
+_EOF_
+
+if [ "$noheader" != "yes" ]; then
 cat > "$H_TARGET" <<_EOF_
 /*
  * @author $AUTHOR
@@ -312,38 +324,30 @@ cat > "$H_TARGET" <<_EOF_
  * @copy $COPY
  * @home $WWW
  */
+_EOF_
+cat > "$C_TARGET" <<_EOF_
+#include "$dirname.h"
+_EOF_
+else
+ H_TARGET="$C_TARGET"
+fi
+cat >> "$H_TARGET"<<_EOF_
 
 #include "config.h"
 #include <stdarg.h>
 #include "windef.h"
 #include "winbase.h"
 #include "wine/debug.h"
+_EOF_
+
+cat "$TMP_DEPS"|sort|uniq >> "$H_TARGET";
+
+cat >> "$H_TARGET" <<_EOF_
 
 WINE_DEFAULT_DEBUG_CHANNEL($dirname);
-
 _EOF_
-cat "$TMP_DEPS"|sort|uniq >> "$H_TARGET";
-echo >> "$H_TARGET";
-cat "$TMP_WRAPED_DEFS" >> "$H_TARGET";
 
-# TODO: Fix breacked lines
-cat "$H_TARGET"|grep -v "/\*.*\*/" |grep -v " *\#"|grep -v "^ *[/*]\+"|grep -v "^ *$" > "$TMP_HLIST"
-cat "$SPEC"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST"
-cat "$TMP_HLIST"|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2-|cut -d\; -f1|sort|uniq|while read f; do echo "$PREFIX$f"; done > "$TMP_FPPLIST"
-
-# Fixing source file
-cat > "$C_TARGET" <<_EOF_
-/*
- * @author $AUTHOR
- * @date $DATE
- * @see Source file $SEE
- * @license $LICENSE
- * @copy $COPY
- * @home $WWW
- */
-
-#include "$dirname.h"
-
+cat >> "$C_TARGET" <<_EOF_
 // DllMain definition
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 {
@@ -363,28 +367,38 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 
 _EOF_
 
-cat "$TMP_HLIST"|while read def
+if [ "$noheader" != "yes" ]; then
+ cat "$TMP_WRAPED_DEFS" >> "$H_TARGET";
+fi
+
+cat "$TMP_WRAPED_DEFS"|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2-|cut -d\; -f1|sort|uniq|while read f; do echo "$PREFIX$f"; done > "$TMP_FPPLIST"
+
+cat "$TMP_WRAPED_DEFS"|while read def
 do
  funcName=`echo $def|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2|cut -d\( -f1`;
- sdef=`lookupForSourceDefinition "$funcName"`;
- sourceDefinition="$sdef";
- passParams=`echo "$sdef"|lookupPassParamsFromSourceDef "$funcName"|sed -e 's/\*//g'|sed -e 's/\&//g'`;
- isnoreturnreq=`echo "$sdef"|cut -d\( -f1|grep "void *[^\*]"`;
+ progpush "$funcName" "7"
+ progdisplay "Building source file" "Writing functions to $dirname.c" "$p"
+ status[0]="5"
+ c=`expr $c + 100`;
+ p=`expr $c / $cmax`
+ passParams=`echo "$def"|lookupPassParamsFromSourceDef "$funcName"|sed -e 's/\*//g'|sed -e 's/\&//g'`;
+ isnoreturnreq=`echo "$def"|cut -d\( -f1|grep "void *[^\*]"`;
  callprefix=`echo "$SPEC_DEF"|sed -e 's/@ */__/g'`;
- echo -n "$callprefix$sdef"|sed -e "s/;$//g"|sed -e "s/$funcName/$PREFIX$funcName/g";
- echo " {";
- if [ -z "$isreturnreq" ]; then
-  echo -ne "\t";
-  echo "return $funcName($passParams);";
- else
-  echo -ne "\t";
-  echo "$funcName($passParams);";
+ echo -n "$callprefix$def"|sed -e "s/;$//g"|sed -e "s/$funcName/$PREFIX$funcName/g" >> "$C_TARGET";
+ echo " {" >> "$C_TARGET"; 
+ echo -ne "\t" >> "$C_TARGET";
+ if [ "$tracething=" == "yes" ]; then
+  echo 'WINE_TRACE("\n");' >> "$C_TARGET";
+  echo -ne "\t" >> "$C_TARGET";
  fi
- echo "}";
- echo
-done >> "$C_TARGET"
-
-# Fixing deps
+ if [ -z "$isnoreturnreq" ]; then
+  echo "return $funcName($passParams);" >> "$C_TARGET";
+ else
+  echo "$funcName($passParams);" >> "$C_TARGET";
+ fi
+ echo "}" >> "$C_TARGET";
+ echo >> "$C_TARGET"
+done
 
 # Fixing spec file
 SPEC_DEF="@";
