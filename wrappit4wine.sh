@@ -122,28 +122,33 @@ done
 } 
 
 # Lookup for depencies
-if [ ! -f "/usr/bin/dialog" ]; then
+if [ ! -f `which dialog` ]; then
  echo "ERROR: Could not find dialog. Cannot conitnue.";
  exit 2;
 fi
 
-if [ ! -f "/usr/bin/winedump" ]; then
+if [ ! -f `which winedump` ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find winedump. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
-if [ ! -f "/bin/sed" ]; then
+if [ ! -f `which sed` ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find sed. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
-if [ ! -f "/usr/bin/tr" ]; then
+if [ ! -f `which tr` ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find tr. Cannot conitnue.\Zn" 6 35
  exit 2;
 fi
 
-if [ ! -f "/bin/grep" ]; then
+if [ ! -f `which grep` ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find grep. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
+
+if [ ! -f `which perl` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
