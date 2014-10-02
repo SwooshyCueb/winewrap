@@ -2,7 +2,7 @@
 #
 # @author Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>
 # @author Markus Kitsinger <swooshycueb@tearmedia.info>
-# @see Script to generate a dll to native library wrapper for wine
+# @description Script to generate a dll to native library wrapper for wine
 # @copyright (c) 2014 Juraj Puchky - Devtech
 # @copyright (c) 2014 Markus Kitsinger
 # @license GPLv3
@@ -123,46 +123,47 @@ done
 
 # Lookup for depencies
 if [ ! -f "/usr/bin/dialog" ]; then
- echo "ERROR: You have to install dialog with ncurses support.";
+ echo "ERROR: Could not find dialog. Cannot conitnue.";
  exit 2;
 fi
 
 if [ ! -f "/usr/bin/winedump" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install winedump from wine.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find winedump. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -f "/bin/sed" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install sed.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find sed. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -f "/usr/bin/tr" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install tr.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find tr. Cannot conitnue.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -f "/bin/grep" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to install grep.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find grep. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
 
 if [ ! -f "$1" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Specified library $1 does not exists.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $1.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -d "$3" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to specify existing headers folder.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1An include folder is required.\Zn" 6 35
  exit 2;
 fi
 
 if [ ! -d "$4" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1You have to specify existing library folder.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1A library folder is required.\Zn" 6 35
  exit 2;
 fi
 
+#Progress dialog stuff
 progh="20"
 progw="80"
 
@@ -232,7 +233,7 @@ TS=`date +%s%N`;
 PREFIX="$2";
 
 if [ -z "$NOTEDIT" ]; then
-dialog --colors --backtitle "$scriptname" --title "Enviromentals" --form "Setup your needs" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "See:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copy:" 5 1 "$COPY" 5 25 25 160 "Home:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
+dialog --colors --backtitle "$scriptname" --title "Information" --form "Provide information about the wrapper" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "Description:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copyright:" 5 1 "$COPY" 5 25 25 160 "Website:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
 AUTHOR=`cat "/tmp/$TS.form"|head -1|tail -1`;
 DATE=`cat "/tmp/$TS.form"|head -2|tail -1`;
 SEE=`cat "/tmp/$TS.form"|head -3|tail -1`;
@@ -273,7 +274,7 @@ TMP_LIBDEPS="/tmp/$TS.libs";
 TMP_LIBDEPPATHS="/tmp/$TS.libpaths";
 TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
 
-# Initialize depencies
+# Gather dependencies
 c=0;
 p=0;
 cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
@@ -316,10 +317,10 @@ cat > "$C_TARGET" <<_EOF_
 /*
  * @author $AUTHOR
  * @date $DATE
- * @see Header file $SEE
+ * @description Source file $SEE
  * @license $LICENSE
- * @copy $COPY
- * @home $WWW
+ * @copyright $COPY
+ * @Website $WWW
  */
 _EOF_
 
@@ -328,10 +329,10 @@ cat > "$H_TARGET" <<_EOF_
 /*
  * @author $AUTHOR
  * @date $DATE
- * @see Header file $SEE
+ * @description Header file $SEE
  * @license $LICENSE
- * @copy $COPY
- * @home $WWW
+ * @copyright $COPY
+ * @Website $WWW
  */
 _EOF_
 cat > "$C_TARGET" <<_EOF_
@@ -440,4 +441,4 @@ cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
 
 cd ..
 CleanUpTemps "$TS";
-if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "About" --infobox "\ZbYour wrapper was generated successfully.\ZB\n\n\ZnYou welcome for using wrapper4wine\nwriten by Juraj Puchky - Devtech.\n\n\Z5\"I would like to see your smile\nwhen you will use wrappit for wine.\"\Zn\n\n\Z4http://www.devtech.cz/opensource/wrappit4wine\Zn" 11 50; fi
+if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi
