@@ -199,6 +199,9 @@ COPY=`cat "/tmp/$TS.form"|head -5|tail -1`;
 HOME=`cat "/tmp/$TS.form"|head -6|tail -1`;
 fi
 
+SPEC="$dirname.spec.orig";
+SPEC_TARGET="$dirname.spec";
+
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
  cp "$1" "$dirname"
@@ -206,14 +209,12 @@ if [ ! -d "$dirname" ]; then
  rm *.c 2> /dev/null
  rm *.h 2> /dev/null
  rm Makefile.in 2> /dev/null
- mv "$dirname.spec" "$dirname.spec.orig"
+ mv "$SPEC_TARGET" "$SPEC"dirname
 else
  dialog --colors --backtitle "wrappit4wine" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$dllname\ZB \Z1already exists.\Zn" 6 35
  exit 2;
 fi
 
-SPEC="$dirname.spec.orig";
-SPEC_TARGET="$dirname.spec";
 C_TARGET="$dirname.c";
 H_TARGET="$dirname.h";
 CONDDEF="$5";
