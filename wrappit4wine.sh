@@ -222,9 +222,7 @@ SOURCEPATHS="$3";
 LIBPATHS="$4";
 TMP_HLIST="/tmp/$TS.hlist";
 TMP_SLIST="/tmp/$TS.slist";
-TMP_FPLIST="/tmp/$TS.fplist";
 TMP_FPPLIST="/tmp/$TS.fpplist";
-TMP_FLIST="/tmp/$TS.flist";
 TMP_DEPS="/tmp/$TS.deps";
 TMP_LIBDEPS="/tmp/$TS.libs";
 TMP_LIBDEPPATHS="/tmp/$TS.libpaths";
@@ -271,8 +269,6 @@ cat "$TMP_WRAPED_DEFS" >> "$H_TARGET";
 # TODO: Fix breacked lines
 cat "$H_TARGET"|grep -v "/\*.*\*/" |grep -v " *\#"|grep -v "^ *[/*]\+"|grep -v "^ *$" > "$TMP_HLIST"
 cat "$SPEC"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST"
-cat "$TMP_HLIST"|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2|cut -d\( -f1|sort|uniq > "$TMP_FLIST"
-cat "$TMP_HLIST"|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2|cut -d\; -f1|sort|uniq > "$TMP_FPLIST"
 cat "$TMP_HLIST"|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2-|cut -d\; -f1|sort|uniq|while read f; do echo "$PREFIX$f"; done > "$TMP_FPPLIST"
 
 # Fixing source file
