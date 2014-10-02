@@ -13,6 +13,9 @@ scriptname="wrappit4wine"
 # Uncomment this line if you want to condense the header into the c source file
 noheader="yes"
 
+# Uncomment this line if you want WINE_TRACE("\n"); in every wrapper function
+tracething="yes"
+
 
 if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
