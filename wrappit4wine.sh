@@ -260,7 +260,7 @@ cat > "$H_TARGET" <<_EOF_
 #include "winbase.h"
 #include "wine/debug.h"
 
-WINE_DEFAULT_DEBUG_CHANNEL(cudart);
+WINE_DEFAULT_DEBUG_CHANNEL($dirname);
 
 _EOF_
 cat "$TMP_DEPS"|sort|uniq >> "$H_TARGET";
