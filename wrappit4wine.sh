@@ -257,6 +257,8 @@ fi
 
 C_TARGET="$dirname.c";
 H_TARGET="$dirname.h";
+LIBS_TARGET="$dirname.libs"
+LIBDIRS_TARGET="$dirname.libdirs"
 CONDDEF="$5";
 SOURCEPATHS="$3";
 LIBPATHS="$4";
@@ -409,8 +411,8 @@ do
 done > "$SPEC_TARGET"
 
 #cat "$TMP_DEPS"|sort|uniq;
-#cat "$TMP_LIBDEPS"|sort|uniq
-#cat "$TMP_LIBDEPPATHS"|sort|uniq
+cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
+cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
 
 cd ..
 CleanUpTemps "$TS";
