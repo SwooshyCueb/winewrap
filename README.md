@@ -4,7 +4,7 @@ wrappit4wine
 
 > @author Markus Kitsinger <swooshycueb@tearmedia.info>
 
-> @see    Script for prepare wrapper of windows dll library for wine
+> @see    Script to generate a dll to native library wrapper for wine
 
 > @home   https://github.com/SwooshyCueb/wrappit4wine
 

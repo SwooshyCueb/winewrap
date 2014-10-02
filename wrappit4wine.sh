@@ -2,7 +2,7 @@
 #
 # @author Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>
 # @author Markus Kitsinger <swooshycueb@tearmedia.info>
-# @see Tool for preparing wrapper for wine libraries
+# @see Script to generate a dll to native library wrapper for wine
 # @copyright (c) 2014 Juraj Puchky - Devtech
 # @copyright (c) 2014 Markus Kitsinger
 # @license GPLv3
@@ -20,12 +20,12 @@ $scriptname
 ============
 Version 1.0.1
 
- Usage: $0 [original windows dll file] [Wrapper prefix] [Lookup Headers] [Lookup Libraries] [DEF]
+ Usage: $0 [original windows dll] [Function prefix] [Include directory] [Library directory] [DEF]
  Legend:
-	Wrapper prefix 		- Functions prefix
-	Lookup headers 		- Path where are wrapped headers stored
-	Lookup libraries 	- Path where are wrapped libraries stored
-	DEF:optional	 	- conditional compilation up on definition
+	Function prefix   - String prepended to wrapper function names
+	Include directory - Directory containing headers with prototypes for functions in the dll
+	Library directory - Directory containing native libraries to be wrapped
+	DEF:optional      - Compilation conditional, depending on this definition
  Sample:
 	$0 burn.dll BURN_ /usr/include /usr/lib
  Commands:
@@ -35,19 +35,20 @@ Version 1.0.1
 	sed
 	tr
 	grep
+  perl
 	dialog
 	Header files or development package be installed
 	Original windows dll
 	Wrapped libraries
  Env:
-	AUTHOR  - who generate wrapper
-	SEE     - what is wrapper about
-	LICENSE - what license you use
-	COPY	- copyright notice
-	DATE	- when you create
-	WWW	- home page of project
-	NOTEDIT	- do not edit environmentals before process empty or set
-	NOPROGRESS	- do not display progress
+	AUTHOR      - Who generated the wrapper
+	SEE         - What is the wrapper's function
+	LICENSE     - What is the licence?
+	COPY        - Copyright
+	DATE        - Date of creation
+	WWW         - Website for project
+	NOTEDIT     - Do not prompt to set these variables at start
+	NOPROGRESS  - Do not display progress
 _EOF_
  exit 1;
 fi
