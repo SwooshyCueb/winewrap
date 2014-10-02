@@ -241,11 +241,12 @@ fi
 
 SPEC="$dirname.spec.orig";
 SPEC_TARGET="$dirname.spec";
+FUNCLIST_TARGET="$dirname.func";
 
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
  cp "$1" "$dirname"
- cd "$dirname" && winedump spec "$dllname"|grep -e ".*'.*'.*"|cut -d\' -f2 > "$dirname.func" && rm -f "$dllname"
+ cd "$dirname" && winedump spec "$dllname"|grep -e ".*'.*'.*"|cut -d\' -f2 > "$FUNCLIST_TARGET" && rm -f "$dllname"
  rm *.c 2> /dev/null
  rm *.h 2> /dev/null
  rm Makefile.in 2> /dev/null
@@ -273,9 +274,9 @@ TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
 # Initialize depencies
 c=0;
 p=0;
-cmax=`cat "$dirname.func"|wc -l`;
+cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
 proginit
-cat "$dirname.func"|while read funcName
+cat "$FUNCLIST_TARGET"|while read funcName
 do
  progpush "$funcName" "-0"
  progdisplay "Preparing dependencies" "Current operation:\nIdentifying required libraries..." "$p"
