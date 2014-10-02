@@ -16,6 +16,10 @@ noheader="yes"
 # Uncomment this line if you want WINE_TRACE("\n"); in every wrapper function
 tracething="yes"
 
+# Uncomment this line if you want to try to generate a spec file with winedump
+#winedumpspec="yes"
+# winedump will sometimes choke and segfault, so this is disabled by default.
+
 
 if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
@@ -171,6 +175,9 @@ if [ ! -d "$4" ]; then
  exit 2;
 fi
 
+#Making sure this gets initialized early
+cmax=
+
 #Progress dialog stuff
 progh="20"
 progw="80"
@@ -211,6 +218,27 @@ function progdisplay { # $1=title $2=text $3=percent
          "${func[1]}"  "${status[1]}" \
          "${func[0]}"  "${status[0]}"
  fi
+}
+
+function winedumpline() {
+ wdlline_func=`echo $1 | grep -e ".*'.*'.*"|cut -d\' -f2`
+ if [[ $1 == \[OK\]* ]] || [[ $1 == \[Not\ Found\]* ]] || [[ $1 == \[Ignoring\] ]]; then
+  c=`expr $c + 100`;
+  p=`expr $c / $cmax`
+  if [[ $1 == \[OK\]* ]]; then
+   status[0]="3"
+  elif [[ $1 == \[Not\ Found\]* ]]; then
+   status[0]="Not Found"
+  elif [[ $1 == \[Ignoring\] ]]; then
+   status[0]="6"
+  fi
+  progpush "-" "8"
+ elif [ -n $wdlline_func ]; then
+  func[0]=$wdlline_func
+  status[0]="7"
+  func[0]=$wdlline_func
+ fi
+ progdisplay "Creating interface specification" "Dumping function information..." "$p"
 }
 
 # Initialize
@@ -257,11 +285,32 @@ FUNCLIST_TARGET="$dirname.func";
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
  cp "$1" "$dirname"
- cd "$dirname" && winedump spec "$dllname"|grep -e ".*'.*'.*"|cut -d\' -f2 > "$FUNCLIST_TARGET" && rm -f "$dllname"
+ cd "$dirname" && winedump spec "$dllname"|grep -e ".*'.*'.*"|cut -d\' -f2 > "$FUNCLIST_TARGET"
+ mv "$SPEC_TARGET" "$SPEC"
+ cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
+ if [ "$winedumpspec" == "yes" ]; then
+  progdisplay "Creating interface specification" "Dumping function information..." "0"
+  c=0;
+  wdlline=""
+  OLD_IFS="$IFS"
+  IFS=
+  stdbuf -o1 winedump spec "$dllname" -I "$3" 2>/dev/null|while read -n 1 -r wdlchar
+  do
+   wdlline+="$wdlchar"
+   if [ "${wdlline: -4}" == "... " ] || [ -z "$wdlchar" ]; then
+    wdlline+="$newline"
+    winedumpline "$wdlline"
+    wdlline=""
+   fi  
+  done
+  mv "$SPEC_TARGET" "$SPEC_DUMPED"
+  IFS="$OLD_IFS"
+ fi
+ rm -f "$dllname"
  rm *.c 2> /dev/null
  rm *.h 2> /dev/null
  rm Makefile.in 2> /dev/null
- mv "$SPEC_TARGET" "$SPEC"dirname
+ clear
 else
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$dllname\ZB \Z1already exists.\Zn" 6 35
  exit 2;
@@ -442,6 +491,31 @@ do
   echo "# $PREFIX$funcName not implemented yet";
  fi
 done > "$SPEC_TARGET"
+
+if [ "$winedumpspec" == "yes" ]; then
+ cat "$SPEC_DUMPED"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST_DUMPED"
+ cat "$TMP_SLIST_DUMPED"|while read l
+  do
+   isparametrized=`echo "$l"|grep "("`;
+  if [ -n "$isparametrized" ]; then
+    echo "$l"|cut -d")" -f1|while read pf
+    do
+     echo "$pf )";
+    done
+  else
+    echo "$l";
+  fi
+ done|while read specFunc
+ do
+  funcName=`echo "$specFunc"|cut -d"(" -f1`;
+  substFunc=`cat "$TMP_FPPLIST"|grep "^$PREFIX$funcName("|cut -d"(" -f1`;
+  if [ -n "$substFunc" ]; then
+   echo "$SPEC_DEF $specFunc $substFunc" >> "$SPEC_DUMPED_TARGET";
+  else
+   echo "# $PREFIX$funcName not implemented yet" >> "$SPEC_DUMPED_TARGET";
+  fi
+ done
+fi
 
 #cat "$TMP_DEPS"|sort|uniq;
 cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
