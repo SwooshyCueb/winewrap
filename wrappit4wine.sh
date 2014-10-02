@@ -230,16 +230,18 @@ TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
 
 # Initialize depencies
 c=0;
+p=0;
 cmax=`cat "$dirname.func"|wc -l`;
 cat "$dirname.func"|while read funcName
 do
+ dialog --colors --backtitle "wrappit4wine" --mixedgauge "Preparing dependencies..." 10 35 $p
  lookupForLibDeps "$funcName" >> "$TMP_LIBDEPS"
  lookupForLibDepPaths "$funcName" >> "$TMP_LIBDEPPATHS"
  lookupForSourceDeps "$funcName" >> "$TMP_DEPS"
  lookupForWrappedSourceDefinition "$funcName" >> "$TMP_WRAPED_DEFS"
  c=`expr $c + 100`
- expr $c / $cmax
-done|if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "wrappit4wine" --gauge "Preparing depencies..." 10 35 0;fi
+ p=`$c / $cmax`
+done
 clear
 
 # Fixing header file
