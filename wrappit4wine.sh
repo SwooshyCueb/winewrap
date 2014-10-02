@@ -8,6 +8,10 @@
 #
 scriptname="wrappit4wine"
 
+# Uncomment this line if you want to condense the header into the c source file
+noheader="yes"
+
+
 if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
 $scriptname 
