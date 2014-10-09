@@ -42,6 +42,7 @@ Version 1.0.1
 	sed
 	tr
 	grep
+	awk
 	perl
 	dialog
 	Header files or development package be installed
@@ -128,7 +129,7 @@ do
 done
 }
 
-# Lookup for depencies
+# Lookup for dependencies
 if [ ! -f `which dialog` ]; then
  echo "ERROR: Could not find dialog. Cannot conitnue.";
  exit 2;
@@ -155,6 +156,11 @@ if [ ! -f `which grep` ]; then
 fi
 
 if [ ! -f `which perl` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
+
+if [ ! -f `which awk` ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
  exit 2;
 fi
