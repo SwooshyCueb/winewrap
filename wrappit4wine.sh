@@ -367,7 +367,7 @@ clear
 cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
 
 if [ $cmax == "0" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in dllname with the given headers and libraries." 6 35 
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $dllname with the given headers and libraries." 6 35 
  exit 1
 fi
 
