@@ -23,7 +23,7 @@ tracething="yes"
 
 if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
-$scriptname 
+$scriptname
 ============
 Version 1.0.1
 
@@ -126,7 +126,7 @@ do
  ;;
  esac
 done
-} 
+}
 
 # Lookup for depencies
 if [ ! -f `which dialog` ]; then
@@ -307,7 +307,7 @@ if [ ! -d "$dirname" ]; then
     wdlline+="$newline"
     winedumpline "$wdlline"
     wdlline=""
-   fi  
+   fi
   done
   mv "$SPEC_TARGET" "$SPEC_DUMPED"
   IFS="$OLD_IFS"
@@ -370,7 +370,7 @@ clear
 cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
 
 if [ $cmax == "0" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $dllname with the given headers and libraries." 6 35 
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $dllname with the given headers and libraries." 6 35
  exit 1
 fi
 
@@ -457,7 +457,7 @@ do
  isnoreturnreq=`echo "$def"|cut -d\( -f1|grep "void *[^\*]"`;
  callprefix=`echo "$SPEC_DEF"|sed -e 's/@ */__/g'`;
  echo -n "$callprefix$def"|sed -e "s/;$//g"|sed -e "s/$funcName/$PREFIX$funcName/g" >> "$C_TARGET";
- echo " {" >> "$C_TARGET"; 
+ echo " {" >> "$C_TARGET";
  echo -ne "\t" >> "$C_TARGET";
  if [ "$tracething=" == "yes" ]; then
   echo 'WINE_TRACE("\n");' >> "$C_TARGET";
@@ -477,14 +477,14 @@ cat "$SPEC"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST"
 SPEC_DEF="@";
 cat "$TMP_SLIST"|while read l
 do
- isparametrized=`echo "$l"|grep "("`; 
- if [ -n "$isparametrized" ]; then 
+ isparametrized=`echo "$l"|grep "("`;
+ if [ -n "$isparametrized" ]; then
    echo "$l"|cut -d")" -f1|while read pf
    do
     echo "$pf )";
    done
  else
-   echo "$l"; 
+   echo "$l";
  fi
 done|while read specFunc
 do
