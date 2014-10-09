@@ -6,52 +6,156 @@
 # @copyright (c) 2014 Juraj Puchky - Devtech
 # @copyright (c) 2014 Markus Kitsinger
 # @license GPLv3
-# @version 1.0.1+ors1
 #
 scriptname="wrappit4wine-so"
+version="1.0.1+ors2"
 
-# Uncomment this line if you want to condense the header into the c source file
-noheader="yes"
+DEFS=()
+PREFIX="wine_"
+INCLUDE_DIRS=()
+INCLUDE_DIRS_SPECIFIED=0
+genheader="no"
+tracething="no"
+silence_progress="no"
+suppress_prompt="no"
+author=`whoami`
+desc=
+WWW="https://github.com/SwooshyCueb/wrappit4wine"
+copyright=
+date=`date`
+license="LGPL-2.1+"
+so=
+dllname=
 
-# Uncomment this line if you want WINE_TRACE("\n"); in every wrapper function
-tracething="yes"
+# Check for dependencies
+if [ ! -f `which dialog` ]; then
+ echo "ERROR: Could not find dialog. Cannot conitnue.";
+ exit 2;
+fi
 
+if [ ! -f `which sed` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find sed. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
 
-if [ -z "$4" ] || [ "$1" == "help" ]; then
+if [ ! -f `which tr` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find tr. Cannot conitnue.\Zn" 6 35
+ exit 2;
+fi
+
+if [ ! -f `which grep` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find grep. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
+
+if [ ! -f `which perl` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
+
+if [ ! -f `which awk` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
+
+function usage() {
  cat << _EOF_
 $scriptname
 ============
-Version 1.0.1+ors1
+Version $version
 
- Usage: $0 [native library] [wrapper name] [Function prefix] [Include directory] [DEF]
- Legend:
-	Function prefix   - String prepended to wrapper function names
-	Include directory - Directory containing headers with prototypes for functions in the dll
-	DEF:optional      - Compilation conditional, depending on this definition
- Sample:
-	$0 /usr/lib/x86_64-linux-gnu/libgtk-x11-2.0.so libgtk-win32-2.0 GTK2_ /usr/include/gtk-2.0
- Commands:
-	help - print this usage screen
- Requirements:
-	sed
-	tr
-	grep
-	perl
-	dialog
-	awk
-	Header files or development package be installed
-	Wrapped libraries
- Env:
-	AUTHOR      - Who generated the wrapper
-	SEE         - What is the function of the wrapper
-	LICENSE     - What is the licence?
-	COPY        - Copyright
-	DATE        - Date of creation
-	WWW         - Website for project
-	NOTEDIT     - Do not prompt to set these variables at start
-	NOPROGRESS  - Do not display progress
+ Usage: $0 -I <include directory> [options] library [dllname]
+ Required options:
+	-I (--include-dir)      Directory containing headers with prototypes for
+	                        functions in the library. Can be specified multiple
+	                        times.
+ Options:
+	-p (--prefix)           String prepended to wrapper function names.
+	-h (--generate-header)  Generate header file for wrapper.
+	-t (--add-trace)        Add 'WINE_TRACE("\n");' to wrapper functions.
+	-q                      Quiet operation. Progress information and initial
+	                        information prompt disabled.
+	--author                Author of wrapper
+	--desc                  Description of wrapper
+	--license               Wrapper license
+	--date                  Date to include in source file(s)
+	--www                   Website to include in source file(s)
+	--copyright             One-line copyright notice to include in source
+	                        file(s)
+	--suppress-info-prompt  Suppress inital information prompt.
+	--suppress-progress     Silence progress information.
+	--help                  Display this usage information.
+
 _EOF_
  exit 1;
+}
+
+OPT=`getopt -o D:p:I:htq -l define:,prefix:,include-dir:,generate-header,add-trace,author:,desc:,license:,www:,copyright:,date:,suppress-info-prompt,suppress-progress,help -n '$scriptname' -s bash -- "$@"`
+eval set -- "$OPT"
+
+if [ "$1" == "--" ] && [ -z "$2" ]; then
+  usage
+fi
+
+while true ; do
+ case "$1" in
+  --help) usage ;;
+  -D|--define) DEFS+=("$2") ; shift 2 ;; #not yet implemented or documented
+  -p|--prefix)
+   if [ -n "$PREFIX"]; then
+    dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Multiple prefixes specified.\Zn" 6 35
+    exit 1
+   else
+    PREFIX="$2"
+   fi
+   shift 2
+  ;;
+  -I|--include-dir)
+   if [ ! -d "$2" ]; then
+    dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find include directory $2.\Zn" 6 35
+    exit 2;
+   fi
+   INCLUDE_DIRS+=("$2")
+   INCLUDE_DIRS_SPECIFIED=1
+   shift 2
+  ;;
+  -h|--generate-header) genheader="yes" ; shift ;;
+  -t|--add-traces) tracething="yes" ; shift ;;
+  -q) silence_progress="yes" ; suppress_prompt="yes" ; shift ;;
+  --author) author="$2" ; shift 2 ;;
+  --desc) desc="$2" ; shift 2 ;;
+  --license) licesne="$2" ; shift 2 ;;
+  --www) WWW="$2" ; shift 2 ;;
+  --copyright) copyright="$2" ; shift 2 ;;
+  --date) date="$2" ; shift 2 ;;
+  --suppress-info-prompt) suppress_prompt="yes" ; shift ;;
+  --suppress-progress) silence_progress="yes" ; shift ;;
+  --)
+   shift
+   so="$1"
+   shift
+   dllname="$1"
+   break
+  ;;
+  *) echo "Internal error!" ; exit 1 ;;
+ esac
+done
+
+if [ -z "$copyright" ]; then
+ copyright="(c) `date +%Y` $author";
+fi
+
+if [ -z "$so" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1No library was specified.\Zn" 6 35
+ exit 1
+elif [ ! -f "$so" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $so.\Zn" 6 35
+ exit 2
+fi
+
+if [ "$INCLUDE_DIRS_SPECIFIED" -eq "0" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1An include directory is required.\Zn" 6 35
+ exit 1
 fi
 
 function CleanUpTemps() {
@@ -59,17 +163,17 @@ function CleanUpTemps() {
 }
 
 function lookupForWrappedSourceDefinition() {
-find "$SOURCEPATHS" -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read fh
+find ${INCLUDE_DIRS[@]} -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read fh
 do
   cat "$fh"|sed -e 's/\/\*.*\*\///g'|sed -e 's/\/\/.*$//g'|sed ':a;N;$!ba;s/, *\n/, /g'|sed -e 's/[ \t]\+/ /g'|grep -e "$1 *(.*) *;"|grep -v "__device__"|grep -v "__global__"|sed -e "s/$1/$PREFIX$1/g"|sed -e 's/extern//g'|sed -e 's/__host__//g'|sed -e 's/__.*builtin__//g'|sed -e 's/ [A-Z]\+API / WINAPI /gi'|sed -e 's/^ *//g'|grep -v "^return"
 done
 }
 
 function lookupForSourceDeps() {
- eSOURCEPATHS=`echo "$SOURCEPATHS"|sed -e 's/\//\\\\\//g'`;
- find "$SOURCEPATHS" -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read dh
+ eINCLUDE_DIRS=`echo ${INCLUDE_DIRS[@]}|sed -e 's/\//\\\\\//g'`;
+ find ${INCLUDE_DIRS[@]} -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read dh
  do
-  dhf=`echo "$dh"|sed -e "s/$eSOURCEPATHS\///g"`;
+  dhf=`echo "$dh"|sed -e "s/$eINCLUDE_DIRS\///g"`;
   echo "#include <$dhf>";
  done
 }
@@ -97,48 +201,6 @@ do
  esac
 done
 }
-
-# Lookup for dependencies
-if [ ! -f `which dialog` ]; then
- echo "ERROR: Could not find dialog. Cannot conitnue.";
- exit 2;
-fi
-
-if [ ! -f `which sed` ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find sed. Cannot continue.\Zn" 6 35
- exit 2;
-fi
-
-if [ ! -f `which tr` ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find tr. Cannot conitnue.\Zn" 6 35
- exit 2;
-fi
-
-if [ ! -f `which grep` ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find grep. Cannot continue.\Zn" 6 35
- exit 2;
-fi
-
-if [ ! -f `which perl` ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
- exit 2;
-fi
-
-if [ ! -f `which awk` ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find awk. Cannot continue.\Zn" 6 35
- exit 2;
-fi
-
-
-if [ ! -f "$1" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $1.\Zn" 6 35
- exit 2;
-fi
-
-if [ ! -d "$4" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1An include folder is required.\Zn" 6 35
- exit 2;
-fi
 
 #Newline variable
 newline='
@@ -181,7 +243,7 @@ function progstatus() { #$1=status for func[0]
 #displays the progress dialog
 function progdisplay { # $1=title $2=text $3=percent
  newprogdate=`date '+%s%N'`
- if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "$progoverexert" ]; then
+ if [ "$silence_progress" == "no" ] && [ "`expr $newprogdate - $progdate`" -gt "$progoverexert" ]; then
   progdate="$newprogdate"
   dialog --colors --backtitle "$scriptname" \
          --title "$1" \
@@ -202,46 +264,32 @@ function progdisplay { # $1=title $2=text $3=percent
 
 #clear, but only if we're showing progress
 function cls {
- if [ -z "$NOPROGRESS" ]; then
+ if [ "$silence_progress" == "no" ]; then
   clear
  fi
 }
 
 # Initialize
-soname=`basename "$1"`;
-dirname="$2";
+soname=`basename "$so"`;
+if [ -z "$dllname" ]; then
+ dllname=`echo "$soname"|sed -e "s/\.so\.*.*//g"`
+fi
+dirname="$dllname";
 
-if [ -z "$DATE" ]; then
- DATE=`date`;
-fi
-if [ -z "$AUTHOR" ]; then
- AUTHOR=`whoami`;
-fi
-if [ -z "$SEE" ]; then
- SEE="Wrapped $soname library for wine";
-fi
-if [ -z "$LICENSE" ]; then
- LICENSE="GPLv3";
-fi
-if [ -z "$COPY" ]; then
- YEAR=`date +%Y`;
- COPY="(c) $YEAR $AUTHOR";
-fi
-if [ -z "$WWW" ]; then
- WWW="http://";
+if [ -z "$desc" ]; then
+ desc="Wrapped $soname library for wine";
 fi
 
 TS=`date +%s%N`;
-PREFIX="$3";
 
-if [ -z "$NOTEDIT" ]; then
-dialog --colors --backtitle "$scriptname" --title "Information" --form "Provide information about the wrapper" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "Description:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copyright:" 5 1 "$COPY" 5 25 25 160 "Website:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
-AUTHOR=`cat "/tmp/$TS.form"|head -1|tail -1`;
-DATE=`cat "/tmp/$TS.form"|head -2|tail -1`;
-SEE=`cat "/tmp/$TS.form"|head -3|tail -1`;
-LICENSE=`cat "/tmp/$TS.form"|head -4|tail -1`;
-COPY=`cat "/tmp/$TS.form"|head -5|tail -1`;
-HOME=`cat "/tmp/$TS.form"|head -6|tail -1`;
+if [ "$suppress_prompt" == "no" ]; then
+dialog --colors --backtitle "$scriptname" --title "Information" --form "Provide information about the wrapper" 25 60 8 "Author:" 1 1 "$author" 1 25 25 50 "Date:" 2 1 "$date" 2 25 25 50 "Description:" 3 1 "$desc" 3 25 25 255 "License:" 4 1 "$license" 4 25 25 80 "Copyright:" 5 1 "$copyright" 5 25 25 160 "Website:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
+author=`cat "/tmp/$TS.form"|head -1|tail -1`;
+date=`cat "/tmp/$TS.form"|head -2|tail -1`;
+desc=`cat "/tmp/$TS.form"|head -3|tail -1`;
+license=`cat "/tmp/$TS.form"|head -4|tail -1`;
+copyright=`cat "/tmp/$TS.form"|head -5|tail -1`;
+WWW=`cat "/tmp/$TS.form"|head -6|tail -1`;
 fi
 
 SPEC_TARGET="$dirname.spec";
@@ -250,7 +298,7 @@ FUNCLIST_TARGET="$dirname.func";
 # generation of function list
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
- cp "$1" "$dirname"
+ cp "$so" "$dirname"
  cd "$dirname" && nm -D --defined-only "$soname"|awk '{ print $3 }' > "$FUNCLIST_TARGET"
  cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
  rm -f "$soname"
@@ -267,8 +315,6 @@ C_TARGET="$dirname.c";
 H_TARGET="$dirname.h";
 LIBS_TARGET="$dirname.libs"
 LIBDIRS_TARGET="$dirname.libdirs"
-CONDDEF="$5";
-SOURCEPATHS="$4";
 TMP_SLIST="/tmp/$TS.slist";
 TMP_FPPLIST="/tmp/$TS.fpplist";
 TMP_DEPS="/tmp/$TS.deps";
@@ -307,24 +353,24 @@ fi
 # Building c source files
 cat > "$C_TARGET" <<_EOF_
 /*
- * @author $AUTHOR
- * @date $DATE
- * @description Source file $SEE
- * @license $LICENSE
- * @copyright $COPY
- * @Website $WWW
+ * @author $author
+ * @date $date
+ * @description $desc
+ * @license $license
+ * @copyright $copyright
+ * @website $WWW
  */
 _EOF_
 
-if [ "$noheader" != "yes" ]; then
+if [ "$genheader" == "yes" ]; then
 cat > "$H_TARGET" <<_EOF_
 /*
- * @author $AUTHOR
- * @date $DATE
- * @description Header file $SEE
- * @license $LICENSE
- * @copyright $COPY
- * @Website $WWW
+ * @author $author
+ * @date $date
+ * @description $desc; header file
+ * @license $license
+ * @copyright $copyright
+ * @website $WWW
  */
 _EOF_
 cat > "$C_TARGET" <<_EOF_
@@ -369,7 +415,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 
 _EOF_
 
-if [ "$noheader" != "yes" ]; then
+if [ "$genheader" == "yes" ]; then
  cat "$TMP_WRAPED_DEFS" >> "$H_TARGET";
 fi
 
@@ -433,4 +479,4 @@ done > "$SPEC_TARGET"
 
 cd ..
 CleanUpTemps "$TS";
-if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi
+if [ "$silence_progress" == "no" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi

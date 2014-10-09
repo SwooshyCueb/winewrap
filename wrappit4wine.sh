@@ -6,130 +6,30 @@
 # @copyright (c) 2014 Juraj Puchky - Devtech
 # @copyright (c) 2014 Markus Kitsinger
 # @license GPLv3
-# @version 1.0.1+ors1
 #
 scriptname="wrappit4wine"
+version="1.0.1+ors2"
 
-# Uncomment this line if you want to condense the header into the c source file
-noheader="yes"
+DEFS=()
+PREFIX="wine_"
+INCLUDE_DIRS=()
+INCLUDE_DIRS_SPECIFIED=0
+LIB_DIRS=()
+LIB_DIRS_SPECIFIED=0
+genheader="no"
+tracething="no"
+winedumpspec="no"
+silence_progress="no"
+suppress_prompt="no"
+author=`whoami`
+desc=
+WWW="https://github.com/SwooshyCueb/wrappit4wine"
+copyright=
+date=`date`
+license="LGPL-2.1+"
+dll=
 
-# Uncomment this line if you want WINE_TRACE("\n"); in every wrapper function
-tracething="yes"
-
-# Uncomment this line if you want to try to generate a spec file with winedump
-#winedumpspec="yes"
-# winedump will sometimes choke and segfault, so this is disabled by default.
-
-
-if [ -z "$4" ] || [ "$1" == "help" ]; then
- cat << _EOF_
-$scriptname
-============
-Version 1.0.1+ors1
-
- Usage: $0 [original windows dll] [Function prefix] [Include directory] [Library directory] [DEF]
- Legend:
-	Function prefix   - String prepended to wrapper function names
-	Include directory - Directory containing headers with prototypes for functions in the dll
-	Library directory - Directory containing native libraries to be wrapped
-	DEF:optional      - Compilation conditional, depending on this definition
- Sample:
-	$0 burn.dll BURN_ /usr/include /usr/lib
- Commands:
-	help - print this usage screen
- Requirements:
-	winedump
-	sed
-	tr
-	grep
-	awk
-	perl
-	dialog
-	Header files or development package be installed
-	Original windows dll
-	Wrapped libraries
- Env:
-	AUTHOR      - Who generated the wrapper
-	SEE         - What is the function of the wrapper
-	LICENSE     - What is the licence?
-	COPY        - Copyright
-	DATE        - Date of creation
-	WWW         - Website for project
-	NOTEDIT     - Do not prompt to set these variables at start
-	NOPROGRESS  - Do not display progress
-_EOF_
- exit 1;
-fi
-
-function CleanUpTemps() {
- rm -f "/tmp/$1.*";
-}
-
-function lookupForWrappedSourceDefinition() {
-find "$SOURCEPATHS" -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read fh
-do
-  cat "$fh"|sed -e 's/\/\*.*\*\///g'|sed -e 's/\/\/.*$//g'|sed ':a;N;$!ba;s/, *\n/, /g'|sed -e 's/[ \t]\+/ /g'|grep -e "$1 *(.*) *;"|grep -v "__device__"|grep -v "__global__"|sed -e "s/$1/$PREFIX$1/g"|sed -e 's/extern//g'|sed -e 's/__host__//g'|sed -e 's/__.*builtin__//g'|sed -e 's/ [A-Z]\+API / WINAPI /gi'|sed -e 's/^ *//g'|grep -v "^return"
-done
-}
-
-function lookupForSourceDeps() {
- eSOURCEPATHS=`echo "$SOURCEPATHS"|sed -e 's/\//\\\\\//g'`;
- find "$SOURCEPATHS" -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read dh
- do
-  dhf=`echo "$dh"|sed -e "s/$eSOURCEPATHS\///g"`;
-  echo "#include <$dhf>";
- done
-}
-
-function lookupForLibDeps() {
- find "$LIBPATHS" -type f -iname "*.so*" -exec grep -a "$1" {} +|cut -d: -f1|while read dl
- do
-  isf=`strings "$dl"|grep "^$1$"`;
-  if [ -n "$isf" ]; then
-   dlf=`basename $dl|cut -d\. -f1`;
-   libname=`echo "$dlf"|sed -e 's/^lib//g'`;
-   echo "-l$libname";
-  fi
- done
-}
-
-function lookupForLibDepPaths() {
- find "$LIBPATHS" -type f -iname "*.so*" -exec grep -a "$1" {} +|cut -d: -f1|sort|uniq|while read dl
- do
-  isf=`strings "$dl"|grep "^$1$"`;
-  if [ -n "$isf" ]; then
-   dlf=`basename $dl`;
-   libpath=`echo "$dl"|sed -e "s/\/$dlf//g"`;
-   echo "-L $libpath";
-  fi
- done
-}
-
-function lookupPassParamsFromSourceDef() {
-sed -e "s/$1 *(/\#/g"|sed -e "s/);/\#/g"|cut -d\# -f2|sed -e "s/,/\n/g"|awk -F" " '{print $(NF)}'|while read pl
-do
-  echo -n ", $pl";
-done|sed -e 's/^, //g'
-}
-
-function prepareSpecParamsFromSourceDef() {
-sed -e "s/$1 *(/\#/g"|sed -e "s/);/\#/g"|cut -d\# -f2|sed -e "s/,/\n/g"|awk -F" " '{print $(NF)}'|while read pl
-do
-  echo "$pl";
-done|while read param
-do
- case "$param" in
- *\**)
-	echo -n " ptr ";
- ;;
- *)
-	echo -n " long ";
- ;;
- esac
-done
-}
-
-# Lookup for dependencies
+# Check for dependencies
 if [ ! -f `which dialog` ]; then
  echo "ERROR: Could not find dialog. Cannot conitnue.";
  exit 2;
@@ -165,21 +65,188 @@ if [ ! -f `which awk` ]; then
  exit 2;
 fi
 
+function usage() {
+ cat << _EOF_
+$scriptname
+============
+Version $version
 
-if [ ! -f "$1" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $1.\Zn" 6 35
- exit 2;
+ Usage: $0 -I <include directory> -L <library directory> [options] dllfile
+ Required options:
+	-I (--include-dir)      Directory containing headers with prototypes for
+	                        functions in the library. Can be specified multiple
+	                        times.
+	-L (--lib-dir)          Directory contiaining the static native libraries
+	                        that contain the functions to be wrapped. Can be
+	                        specified multiple times.
+ Options:
+	-p (--prefix)           String prepended to wrapper function names.
+	-h (--generate-header)  Generate header file for wrapper.
+	-t (--add-trace)        Add 'WINE_TRACE("\n");' to wrapper functions.
+	-d (--winedump-spec)    Generate a spec file with winedump. This is not
+	                        done by default because winedump can choke and
+	                        crash.
+	-q                      Quiet operation. Progress information and initial
+	                        information prompt disabled.
+	--author                Author of wrapper
+	--desc                  Description of wrapper
+	--license               Wrapper license
+	--date                  Date to include in source file(s)
+	--www                   Website to include in source file(s)
+	--copyright             One-line copyright notice to include in source
+	                        file(s)
+	--suppress-info-prompt  Suppress inital information prompt.
+	--suppress-progress     Silence progress information.
+	--help                  Display this usage information.
+
+_EOF_
+ exit 1;
+}
+
+OPT=`getopt -o D:p:I:L:htdq -l define:,prefix:,include-dir:,lib-dir:,generate-header,add-trace,winedump-spec,author:,desc:,license:,www:,copyright:,date:,suppress-info-prompt,suppress-progress,help -n '$scriptname' -s bash -- "$@"`
+eval set -- "$OPT"
+
+if [ "$1" == "--" ] && [ -z "$2" ]; then
+  usage
 fi
 
-if [ ! -d "$3" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1An include folder is required.\Zn" 6 35
- exit 2;
+while true ; do
+ case "$1" in
+  --help) usage ;;
+  -D|--define) DEFS+=("$2") ; shift 2 ;; #not yet implemented or documented
+  -p|--prefix)
+   if [ -n "$PREFIX"]; then
+    dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Multiple prefixes specified.\Zn" 6 35
+    exit 1
+   else
+    PREFIX="$2"
+   fi
+   shift 2
+  ;;
+  -I|--include-dir)
+   if [ ! -d "$2" ]; then
+    dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find include directory $2.\Zn" 6 35
+    exit 2;
+   fi
+   INCLUDE_DIRS+=("$2")
+   INCLUDE_DIRS_SPECIFIED=1
+   shift 2
+  ;;
+  -L|--lib-dir)
+   if [ ! -d "$2" ]; then
+    dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find library directory $2.\Zn" 6 35
+    exit 2;
+   fi
+   LIB_DIRS+=("$2")
+   LIB_DIRS_SPECIFIED=1
+   shift 2
+  ;;
+  -h|--generate-header) genheader="yes" ; shift ;;
+  -t|--add-traces) tracething="yes" ; shift ;;
+  -d|--winedump-spec) winedumpspec="yes" ; shift ;;
+  -q) silence_progress="yes" ; suppress_prompt="yes" ; shift ;;
+  --author) author="$2" ; shift 2 ;;
+  --desc) desc="$2" ; shift 2 ;;
+  --license) licesne="$2" ; shift 2 ;;
+  --www) WWW="$2" ; shift 2 ;;
+  --copyright) copyright="$2" ; shift 2 ;;
+  --date) date="$2" ; shift 2 ;;
+  --suppress-info-prompt) suppress_prompt="yes" ; shift ;;
+  --suppress-progress) silence_progress="yes" ; shift ;;
+  --) shift ; dll="$1" ; break ;;
+  *) echo "Internal error!" ; exit 1 ;;
+ esac
+done
+
+if [ -z "$copyright" ]; then
+ copyright="(c) `date +%Y` $author";
 fi
 
-if [ ! -d "$4" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1A library folder is required.\Zn" 6 35
- exit 2;
+if [ -z "$dll" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1No dll was specified.\Zn" 6 35
+ exit 1
+elif [ ! -f "$dll" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $dll.\Zn" 6 35
+ exit 2
 fi
+
+if [ "$INCLUDE_DIRS_SPECIFIED" -eq "0" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1An include directory is required.\Zn" 6 35
+ exit 1
+fi
+
+if [ "$LIB_DIRS_SPECIFIED" -eq "0" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1A library directory is required.\Zn" 6 35
+ exit 1
+fi
+
+function CleanUpTemps() {
+ rm -f "/tmp/$1.*";
+}
+
+function lookupForWrappedSourceDefinition() {
+find ${INCLUDE_DIRS[@]} -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read fh
+do
+  cat "$fh"|sed -e 's/\/\*.*\*\///g'|sed -e 's/\/\/.*$//g'|sed ':a;N;$!ba;s/, *\n/, /g'|sed -e 's/[ \t]\+/ /g'|grep -e "$1 *(.*) *;"|grep -v "__device__"|grep -v "__global__"|sed -e "s/$1/$PREFIX$1/g"|sed -e 's/extern//g'|sed -e 's/__host__//g'|sed -e 's/__.*builtin__//g'|sed -e 's/ [A-Z]\+API / WINAPI /gi'|sed -e 's/^ *//g'|grep -v "^return"
+done
+}
+
+function lookupForSourceDeps() {
+ eINCLUDE_DIRS=`echo ${INCLUDE_DIRS[@]}|sed -e 's/\//\\\\\//g'`;
+ find ${INCLUDE_DIRS[@]} -type f -iname "*.h" -exec perl -0777 -ne "while(m/.+$1 *\([\s\S]*?\) *;/g){print \"\$ARGV\n\";}" \{\} +|sort|uniq|while read dh
+ do
+  dhf=`echo "$dh"|sed -e "s/$eINCLUDE_DIRS\///g"`;
+  echo "#include <$dhf>";
+ done
+}
+
+function lookupForLibDeps() {
+ find ${LIB_DIRS[@]} -type f -iname "*.so*" -exec grep -a "$1" {} +|cut -d: -f1|while read dl
+ do
+  isf=`strings "$dl"|grep "^$1$"`;
+  if [ -n "$isf" ]; then
+   dlf=`basename $dl|cut -d\. -f1`;
+   libname=`echo "$dlf"|sed -e 's/^lib//g'`;
+   echo "-l$libname";
+  fi
+ done
+}
+
+function lookupForLibDepPaths() {
+ find ${LIB_DIRS[@]} -type f -iname "*.so*" -exec grep -a "$1" {} +|cut -d: -f1|sort|uniq|while read dl
+ do
+  isf=`strings "$dl"|grep "^$1$"`;
+  if [ -n "$isf" ]; then
+   dlf=`basename $dl`;
+   libpath=`echo "$dl"|sed -e "s/\/$dlf//g"`;
+   echo "-L $libpath";
+  fi
+ done
+}
+
+function lookupPassParamsFromSourceDef() {
+sed -e "s/$1 *(/\#/g"|sed -e "s/);/\#/g"|cut -d\# -f2|sed -e "s/,/\n/g"|awk -F" " '{print $(NF)}'|while read pl
+do
+  echo -n ", $pl";
+done|sed -e 's/^, //g'
+}
+
+function prepareSpecParamsFromSourceDef() {
+sed -e "s/$1 *(/\#/g"|sed -e "s/);/\#/g"|cut -d\# -f2|sed -e "s/,/\n/g"|awk -F" " '{print $(NF)}'|while read pl
+do
+  echo "$pl";
+done|while read param
+do
+ case "$param" in
+ *\**)
+	echo -n " ptr ";
+ ;;
+ *)
+	echo -n " long ";
+ ;;
+ esac
+done
+}
 
 #Newline variable
 newline='
@@ -222,7 +289,8 @@ function progstatus() { #$1=status for func[0]
 #displays the progress dialog
 function progdisplay { # $1=title $2=text $3=percent
  newprogdate=`date '+%s%N'`
- if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "$progoverexert" ]; then
+ if [ "$silence_progress" == "no" ] && [ "`expr $newprogdate - $progdate`" -gt "$progoverexert" ]; then
+  progdate="$newprogdate"
   dialog --colors --backtitle "$scriptname" \
          --title "$1" \
          --mixedgauge "$2" \
@@ -242,7 +310,7 @@ function progdisplay { # $1=title $2=text $3=percent
 
 #clear, but only if we're showing progress
 function cls {
- if [ -z "$NOPROGRESS" ]; then
+ if [ "$silence_progress" == "no" ]; then
   clear
  fi
 }
@@ -270,40 +338,23 @@ function winedumpline() { # $1 winedump output "line"
 }
 
 # Initialize
-dllname=`basename "$1"`;
+dllname=`basename "$dll"`
 dirname=`echo "$dllname"|cut -d\. -f1`;
 
-if [ -z "$DATE" ]; then
- DATE=`date`;
-fi
-if [ -z "$AUTHOR" ]; then
- AUTHOR=`whoami`;
-fi
-if [ -z "$SEE" ]; then
- SEE="Wrapped $dllname library for wine";
-fi
-if [ -z "$LICENSE" ]; then
- LICENSE="GPLv3";
-fi
-if [ -z "$COPY" ]; then
- YEAR=`date +%Y`;
- COPY="(c) $YEAR $AUTHOR";
-fi
-if [ -z "$WWW" ]; then
- WWW="http://";
+if [ -z "$desc" ]; then
+ desc="Wrapped $dllname library for wine";
 fi
 
 TS=`date +%s%N`;
-PREFIX="$2";
 
-if [ -z "$NOTEDIT" ]; then
-dialog --colors --backtitle "$scriptname" --title "Information" --form "Provide information about the wrapper" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "Description:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copyright:" 5 1 "$COPY" 5 25 25 160 "Website:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
-AUTHOR=`cat "/tmp/$TS.form"|head -1|tail -1`;
-DATE=`cat "/tmp/$TS.form"|head -2|tail -1`;
-SEE=`cat "/tmp/$TS.form"|head -3|tail -1`;
-LICENSE=`cat "/tmp/$TS.form"|head -4|tail -1`;
-COPY=`cat "/tmp/$TS.form"|head -5|tail -1`;
-HOME=`cat "/tmp/$TS.form"|head -6|tail -1`;
+if [ "$suppress_prompt" == "no" ]; then
+dialog --colors --backtitle "$scriptname" --title "Information" --form "Provide information about the wrapper" 25 60 8 "Author:" 1 1 "$author" 1 25 25 50 "Date:" 2 1 "$date" 2 25 25 50 "Description:" 3 1 "$desc" 3 25 25 255 "License:" 4 1 "$license" 4 25 25 80 "Copyright:" 5 1 "$copyright" 5 25 25 160 "Website:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
+author=`cat "/tmp/$TS.form"|head -1|tail -1`;
+date=`cat "/tmp/$TS.form"|head -2|tail -1`;
+desc=`cat "/tmp/$TS.form"|head -3|tail -1`;
+license=`cat "/tmp/$TS.form"|head -4|tail -1`;
+copyright=`cat "/tmp/$TS.form"|head -5|tail -1`;
+WWW=`cat "/tmp/$TS.form"|head -6|tail -1`;
 fi
 
 SPEC="$dirname.spec.orig";
@@ -316,7 +367,7 @@ FUNCLIST_TARGET="$dirname.func";
 # original winedump spec file also generated here
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
- cp "$1" "$dirname"
+ cp "$dll" "$dirname"
  cd "$dirname" && winedump spec "$dllname"|grep -e ".*'.*'.*"|cut -d\' -f2 > "$FUNCLIST_TARGET"
  mv "$SPEC_TARGET" "$SPEC"
  cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
@@ -326,7 +377,12 @@ if [ ! -d "$dirname" ]; then
   wdlline=""
   OLD_IFS="$IFS"
   IFS=
-  stdbuf -o1 winedump spec "$dllname" -I "$3" 2>/dev/null|while read -n 1 -r wdlchar
+  wd_include_dirs=
+  for i in "${INCLUDE_DIRS[@]}"
+  do
+   wd_include_dirs+="-I \"$i\" "
+  done
+  stdbuf -o1 winedump spec "$dllname" $wd_include_dirs 2>/dev/null|while read -n 1 -r wdlchar
   do
    wdlline+="$wdlchar"
    if [ "${wdlline: -4}" == "... " ] || [ -z "$wdlchar" ]; then
@@ -352,9 +408,6 @@ C_TARGET="$dirname.c";
 H_TARGET="$dirname.h";
 LIBS_TARGET="$dirname.libs"
 LIBDIRS_TARGET="$dirname.libdirs"
-CONDDEF="$5";
-SOURCEPATHS="$3";
-LIBPATHS="$4";
 TMP_SLIST="/tmp/$TS.slist";
 TMP_SLIST_DUMPED="/tmp/$TS.slist.dumped";
 TMP_FPPLIST="/tmp/$TS.fpplist";
@@ -404,24 +457,24 @@ fi
 # Building c source files
 cat > "$C_TARGET" <<_EOF_
 /*
- * @author $AUTHOR
- * @date $DATE
- * @description Source file $SEE
- * @license $LICENSE
- * @copyright $COPY
- * @Website $WWW
+ * @author $author
+ * @date $date
+ * @description $desc
+ * @license $license
+ * @copyright $copyright
+ * @website $WWW
  */
 _EOF_
 
-if [ "$noheader" != "yes" ]; then
+if [ "$genheader" == "yes" ]; then
 cat > "$H_TARGET" <<_EOF_
 /*
- * @author $AUTHOR
- * @date $DATE
- * @description Header file $SEE
- * @license $LICENSE
- * @copyright $COPY
- * @Website $WWW
+ * @author $author
+ * @date $date
+ * @description $desc; header file
+ * @license $license
+ * @copyright $copyright
+ * @website $WWW
  */
 _EOF_
 cat > "$C_TARGET" <<_EOF_
@@ -466,7 +519,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 
 _EOF_
 
-if [ "$noheader" != "yes" ]; then
+if [ "$genheader" == "yes" ]; then
  cat "$TMP_WRAPED_DEFS" >> "$H_TARGET";
 fi
 
@@ -556,5 +609,4 @@ cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
 
 cd ..
 CleanUpTemps "$TS";
-if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi
-
+if [ "$silence_progress" == "no" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi
