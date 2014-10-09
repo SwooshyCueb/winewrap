@@ -274,3 +274,107 @@ do
 done
 clear
 
+cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
+
+if [ $cmax == "0" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $soname with the given headers and libraries." 6 35 
+ exit 1
+fi
+
+# Building c source files
+cat > "$C_TARGET" <<_EOF_
+/*
+ * @author $AUTHOR
+ * @date $DATE
+ * @description Source file $SEE
+ * @license $LICENSE
+ * @copyright $COPY
+ * @Website $WWW
+ */
+_EOF_
+
+if [ "$noheader" != "yes" ]; then
+cat > "$H_TARGET" <<_EOF_
+/*
+ * @author $AUTHOR
+ * @date $DATE
+ * @description Header file $SEE
+ * @license $LICENSE
+ * @copyright $COPY
+ * @Website $WWW
+ */
+_EOF_
+cat > "$C_TARGET" <<_EOF_
+#include "$dirname.h"
+_EOF_
+else
+ H_TARGET="$C_TARGET"
+fi
+cat >> "$H_TARGET"<<_EOF_
+
+#include "config.h"
+#include <stdarg.h>
+#include "windef.h"
+#include "winbase.h"
+#include "wine/debug.h"
+_EOF_
+
+cat "$TMP_DEPS"|sort|uniq >> "$H_TARGET";
+
+cat >> "$H_TARGET" <<_EOF_
+
+WINE_DEFAULT_DEBUG_CHANNEL($dirname);
+_EOF_
+
+cat >> "$C_TARGET" <<_EOF_
+// DllMain definition
+BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
+{
+    TRACE("(%p, %u, %p)\n", instance, reason, reserved);
+
+    switch (reason)
+    {
+        case DLL_WINE_PREATTACH:
+            return FALSE;
+        case DLL_PROCESS_ATTACH:
+            DisableThreadLibraryCalls(instance);
+            break;
+    }
+
+    return TRUE;
+}
+
+_EOF_
+
+if [ "$noheader" != "yes" ]; then
+ cat "$TMP_WRAPED_DEFS" >> "$H_TARGET";
+fi
+
+cat "$TMP_WRAPED_DEFS"|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2-|cut -d\; -f1|sort|uniq|while read f; do echo "$PREFIX$f"; done > "$TMP_FPPLIST"
+
+cat "$TMP_WRAPED_DEFS"|while read def
+do
+ funcName=`echo $def|sed -e "s/$PREFIX/\#/g"|cut -d\# -f2|cut -d\( -f1`;
+ progpush "$funcName" "7"
+ progdisplay "Building source file" "Writing functions to $dirname.c" "$p"
+ status[0]="5"
+ c=`expr $c + 100`;
+ p=`expr $c / $cmax`
+ passParams=`echo "$def"|lookupPassParamsFromSourceDef "$funcName"|sed -e 's/\*//g'|sed -e 's/\&//g'`;
+ isnoreturnreq=`echo "$def"|cut -d\( -f1|grep "void *[^\*]"`;
+ callprefix=`echo "$SPEC_DEF"|sed -e 's/@ */__/g'`;
+ echo -n "$callprefix$def"|sed -e "s/;$//g"|sed -e "s/$funcName/$PREFIX$funcName/g" >> "$C_TARGET";
+ echo " {" >> "$C_TARGET"; 
+ echo -ne "\t" >> "$C_TARGET";
+ if [ "$tracething=" == "yes" ]; then
+  echo 'WINE_TRACE("\n");' >> "$C_TARGET";
+  echo -ne "\t" >> "$C_TARGET";
+ fi
+ if [ -z "$isnoreturnreq" ]; then
+  echo "return $funcName($passParams);" >> "$C_TARGET";
+ else
+  echo "$funcName($passParams);" >> "$C_TARGET";
+ fi
+ echo "}" >> "$C_TARGET";
+ echo >> "$C_TARGET"
+done
