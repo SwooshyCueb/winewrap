@@ -36,6 +36,7 @@ Version 1.0.1
 	grep
 	perl
 	dialog
+	awk
 	Header files or development package be installed
 	Wrapped libraries
  Env:
@@ -118,6 +119,11 @@ fi
 
 if [ ! -f `which perl` ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find perl. Cannot continue.\Zn" 6 35
+ exit 2;
+fi
+
+if [ ! -f `which awk` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find awk. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
