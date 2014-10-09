@@ -177,6 +177,7 @@ fi
 
 #Making sure this gets initialized early
 cmax=
+progdate=`date '+%s%N'`
 
 #Newline variable
 newline='
@@ -206,7 +207,9 @@ function progstatus() { #$1=status for func[0]
 }
 
 function progdisplay { # $1=title $2=text $3=percent
- if [ -z "$NOPROGRESS" ]; then
+ newprogdate=`date '+%s%N'`
+ if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "60000000" ]; then
+  clear
   dialog --colors --backtitle "$scriptname" \
          --title "$1" \
          --mixedgauge "$2" \
