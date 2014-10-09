@@ -1,21 +1,22 @@
 #!/bin/bash
 #
-# @author Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>
-# @author Markus Kitsinger <swooshycueb@tearmedia.info>
-# @description Script to generate a dll to native library wrapper for wine from a native library
-# @copyright (c) 2014 Juraj Puchky - Devtech
-# @copyright (c) 2014 Markus Kitsinger
+# @description Script to generate a dll to native library wrapper for wine from a dll
+# @copyright (c) 2014 Juraj Puchky - Devtech <sjurajpuchky@seznam.cz>
+# @copyright (c) 2014 Markus Kitsinger <swooshycueb@tearmedia.info>
 # @license GPLv3
 #
-scriptname="wrappit4wine-so"
-version="1.0.1+ors2"
+scriptname="winewrap-dll"
+version="1.1"
 
 DEFS=()
 PREFIX="wine_"
 INCLUDE_DIRS=()
 INCLUDE_DIRS_SPECIFIED=0
+LIB_DIRS=()
+LIB_DIRS_SPECIFIED=0
 genheader="no"
 tracething="no"
+winedumpspec="no"
 silence_progress="no"
 suppress_prompt="no"
 author=`whoami`
@@ -24,12 +25,16 @@ WWW="https://github.com/SwooshyCueb/wrappit4wine"
 copyright=
 date=`date`
 license="LGPL-2.1+"
-so=
-dllname=
+dll=
 
 # Check for dependencies
 if [ ! -f `which dialog` ]; then
  echo "ERROR: Could not find dialog. Cannot conitnue.";
+ exit 2;
+fi
+
+if [ ! -f `which winedump` ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find winedump. Cannot continue.\Zn" 6 35
  exit 2;
 fi
 
@@ -64,15 +69,21 @@ $scriptname
 ============
 Version $version
 
- Usage: $0 -I <include directory> [options] library [dllname]
+ Usage: $0 -I <include directory> -L <library directory> [options] dllfile
  Required options:
 	-I (--include-dir)      Directory containing headers with prototypes for
 	                        functions in the library. Can be specified multiple
 	                        times.
+	-L (--lib-dir)          Directory contiaining the static native libraries
+	                        that contain the functions to be wrapped. Can be
+	                        specified multiple times.
  Options:
 	-p (--prefix)           String prepended to wrapper function names.
 	-h (--generate-header)  Generate header file for wrapper.
 	-t (--add-trace)        Add 'WINE_TRACE("\n");' to wrapper functions.
+	-d (--winedump-spec)    Generate a spec file with winedump. This is not
+	                        done by default because winedump can choke and
+	                        crash.
 	-q                      Quiet operation. Progress information and initial
 	                        information prompt disabled.
 	--author                Author of wrapper
@@ -90,7 +101,7 @@ _EOF_
  exit 1;
 }
 
-OPT=`getopt -o D:p:I:htq -l define:,prefix:,include-dir:,generate-header,add-trace,author:,desc:,license:,www:,copyright:,date:,suppress-info-prompt,suppress-progress,help -n '$scriptname' -s bash -- "$@"`
+OPT=`getopt -o D:p:I:L:htdq -l define:,prefix:,include-dir:,lib-dir:,generate-header,add-trace,winedump-spec,author:,desc:,license:,www:,copyright:,date:,suppress-info-prompt,suppress-progress,help -n '$scriptname' -s bash -- "$@"`
 eval set -- "$OPT"
 
 if [ "$1" == "--" ] && [ -z "$2" ]; then
@@ -119,8 +130,18 @@ while true ; do
    INCLUDE_DIRS_SPECIFIED=1
    shift 2
   ;;
+  -L|--lib-dir)
+   if [ ! -d "$2" ]; then
+    dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find library directory $2.\Zn" 6 35
+    exit 2;
+   fi
+   LIB_DIRS+=("$2")
+   LIB_DIRS_SPECIFIED=1
+   shift 2
+  ;;
   -h|--generate-header) genheader="yes" ; shift ;;
   -t|--add-traces) tracething="yes" ; shift ;;
+  -d|--winedump-spec) winedumpspec="yes" ; shift ;;
   -q) silence_progress="yes" ; suppress_prompt="yes" ; shift ;;
   --author) author="$2" ; shift 2 ;;
   --desc) desc="$2" ; shift 2 ;;
@@ -130,13 +151,7 @@ while true ; do
   --date) date="$2" ; shift 2 ;;
   --suppress-info-prompt) suppress_prompt="yes" ; shift ;;
   --suppress-progress) silence_progress="yes" ; shift ;;
-  --)
-   shift
-   so="$1"
-   shift
-   dllname="$1"
-   break
-  ;;
+  --) shift ; dll="$1" ; break ;;
   *) echo "Internal error!" ; exit 1 ;;
  esac
 done
@@ -145,16 +160,21 @@ if [ -z "$copyright" ]; then
  copyright="(c) `date +%Y` $author";
 fi
 
-if [ -z "$so" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1No library was specified.\Zn" 6 35
+if [ -z "$dll" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1No dll was specified.\Zn" 6 35
  exit 1
-elif [ ! -f "$so" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $so.\Zn" 6 35
+elif [ ! -f "$dll" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Could not find file $dll.\Zn" 6 35
  exit 2
 fi
 
 if [ "$INCLUDE_DIRS_SPECIFIED" -eq "0" ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1An include directory is required.\Zn" 6 35
+ exit 1
+fi
+
+if [ "$LIB_DIRS_SPECIFIED" -eq "0" ]; then
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1A library directory is required.\Zn" 6 35
  exit 1
 fi
 
@@ -175,6 +195,30 @@ function lookupForSourceDeps() {
  do
   dhf=`echo "$dh"|sed -e "s/$eINCLUDE_DIRS\///g"`;
   echo "#include <$dhf>";
+ done
+}
+
+function lookupForLibDeps() {
+ find ${LIB_DIRS[@]} -type f -iname "*.so*" -exec grep -a "$1" {} +|cut -d: -f1|while read dl
+ do
+  isf=`strings "$dl"|grep "^$1$"`;
+  if [ -n "$isf" ]; then
+   dlf=`basename $dl|cut -d\. -f1`;
+   libname=`echo "$dlf"|sed -e 's/^lib//g'`;
+   echo "-l$libname";
+  fi
+ done
+}
+
+function lookupForLibDepPaths() {
+ find ${LIB_DIRS[@]} -type f -iname "*.so*" -exec grep -a "$1" {} +|cut -d: -f1|sort|uniq|while read dl
+ do
+  isf=`strings "$dl"|grep "^$1$"`;
+  if [ -n "$isf" ]; then
+   dlf=`basename $dl`;
+   libpath=`echo "$dl"|sed -e "s/\/$dlf//g"`;
+   echo "-L $libpath";
+  fi
  done
 }
 
@@ -269,15 +313,34 @@ function cls {
  fi
 }
 
+#parse output of winedump when generating spec from winedump
+function winedumpline() { # $1 winedump output "line"
+ wdlline_func=`echo $1 | grep -e ".*'.*'.*"|cut -d\' -f2`
+ if [[ $1 == \[OK\]* ]] || [[ $1 == \[Not\ Found\]* ]] || [[ $1 == \[Ignoring\] ]]; then
+  c=`expr $c + 100`;
+  p=`expr $c / $cmax`
+  if [[ $1 == \[OK\]* ]]; then
+   status[0]="3"
+  elif [[ $1 == \[Not\ Found\]* ]]; then
+   status[0]="Not Found"
+  elif [[ $1 == \[Ignoring\] ]]; then
+   status[0]="6"
+  fi
+  progpush "-" "8"
+ elif [ -n $wdlline_func ]; then
+  func[0]=$wdlline_func
+  status[0]="7"
+  func[0]=$wdlline_func
+ fi
+ progdisplay "Creating interface specification" "Dumping function information..." "$p"
+}
+
 # Initialize
-soname=`basename "$so"`;
-if [ -z "$dllname" ]; then
- dllname=`echo "$soname"|sed -e "s/\.so\.*.*//g"`
-fi
-dirname="$dllname";
+dllname=`basename "$dll"`
+dirname=`echo "$dllname"|sed -e "s/\.so\.*.*//g"`;
 
 if [ -z "$desc" ]; then
- desc="Wrapped $soname library for wine";
+ desc="Wrapped $dllname library for wine";
 fi
 
 TS=`date +%s%N`;
@@ -292,22 +355,50 @@ copyright=`cat "/tmp/$TS.form"|head -5|tail -1`;
 WWW=`cat "/tmp/$TS.form"|head -6|tail -1`;
 fi
 
+SPEC="$dirname.spec.orig";
+SPEC_DUMPED="$dirname.spec.dumped.orig"
 SPEC_TARGET="$dirname.spec";
+SPEC_DUMPED_TARGET="$dirname.spec.dumped"
 FUNCLIST_TARGET="$dirname.func";
 
 # generation of function list
+# original winedump spec file also generated here
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
- cp "$so" "$dirname"
- cd "$dirname" && nm -D --defined-only "$soname"|awk '{ print $3 }' > "$FUNCLIST_TARGET"
+ cp "$dll" "$dirname"
+ cd "$dirname" && winedump spec "$dllname"|grep -e ".*'.*'.*"|cut -d\' -f2 > "$FUNCLIST_TARGET"
+ mv "$SPEC_TARGET" "$SPEC"
  cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
- rm -f "$soname"
+ if [ "$winedumpspec" == "yes" ]; then
+  progdisplay "Creating interface specification" "Dumping function information..." "0"
+  c=0;
+  wdlline=""
+  OLD_IFS="$IFS"
+  IFS=
+  wd_include_dirs=
+  for i in "${INCLUDE_DIRS[@]}"
+  do
+   wd_include_dirs+="-I \"$i\" "
+  done
+  stdbuf -o1 winedump spec "$dllname" $wd_include_dirs 2>/dev/null|while read -n 1 -r wdlchar
+  do
+   wdlline+="$wdlchar"
+   if [ "${wdlline: -4}" == "... " ] || [ -z "$wdlchar" ]; then
+    wdlline+="$newline"
+    winedumpline "$wdlline"
+    wdlline=""
+   fi
+  done
+  mv "$SPEC_TARGET" "$SPEC_DUMPED"
+  IFS="$OLD_IFS"
+ fi
+ rm -f "$dllname"
  rm *.c 2> /dev/null
  rm *.h 2> /dev/null
  rm Makefile.in 2> /dev/null
  cls
 else
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$soname\ZB \Z1already exists.\Zn" 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$dllname\ZB \Z1already exists.\Zn" 6 35
  exit 2;
 fi
 
@@ -316,13 +407,14 @@ H_TARGET="$dirname.h";
 LIBS_TARGET="$dirname.libs"
 LIBDIRS_TARGET="$dirname.libdirs"
 TMP_SLIST="/tmp/$TS.slist";
+TMP_SLIST_DUMPED="/tmp/$TS.slist.dumped";
 TMP_FPPLIST="/tmp/$TS.fpplist";
 TMP_DEPS="/tmp/$TS.deps";
 TMP_LIBDEPS="/tmp/$TS.libs";
 TMP_LIBDEPPATHS="/tmp/$TS.libpaths";
 TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
 
-# Gather header dependencies
+# Gather dependencies
 c=0;
 p=0;
 cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
@@ -330,14 +422,24 @@ proginit
 cat "$FUNCLIST_TARGET"|while read funcName
 do
  progpush "$funcName" "-0"
- progdisplay "Preparing dependencies" "Current operation:\nIdentifying required headers..." "$p"
- lookupForSourceDeps "$funcName" >> "$TMP_DEPS"
- c=`expr $c + 50`;
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying required libraries..." "$p"
+ lookupForLibDeps "$funcName" >> "$TMP_LIBDEPS"
+ c=`expr $c + 25`;
+ p=`expr $c / $cmax`
+ progstatus "-25"
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying library paths..." "$p"
+ lookupForLibDepPaths "$funcName" >> "$TMP_LIBDEPPATHS"
+ c=`expr $c + 25`;
  p=`expr $c / $cmax`
  progstatus "-50"
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying required headers..." "$p"
+ lookupForSourceDeps "$funcName" >> "$TMP_DEPS"
+ c=`expr $c + 25`;
+ p=`expr $c / $cmax`
+ progstatus "-75"
  progdisplay "Preparing dependencies" "Current operation:\nSearching for function declaration..." "$p"
  lookupForWrappedSourceDefinition "$funcName" >> "$TMP_WRAPED_DEFS"
- c=`expr $c + 50`
+ c=`expr $c + 25`
  p=`expr $c / $cmax`
  progstatus "3"
 done
@@ -346,7 +448,7 @@ cls
 # Let's make sure we actually have some functions to wrap
 cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
 if [ $cmax == "0" ]; then
- dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $soname with the given headers and libraries." 6 35
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $dllname with the given headers and libraries." 6 35
  exit 1
 fi
 
@@ -449,8 +551,9 @@ do
 done
 
 # Fixing spec file
+cat "$SPEC"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST"
 SPEC_DEF="@";
-cat "$FUNCLIST_TARGET"|while read l
+cat "$TMP_SLIST"|while read l
 do
  isparametrized=`echo "$l"|grep "("`;
  if [ -n "$isparametrized" ]; then
@@ -473,9 +576,34 @@ do
  fi
 done > "$SPEC_TARGET"
 
+if [ "$winedumpspec" == "yes" ]; then
+ cat "$SPEC_DUMPED"|grep "^[0-9]\+"|cut -d" " -f3- > "$TMP_SLIST_DUMPED"
+ cat "$TMP_SLIST_DUMPED"|while read l
+  do
+   isparametrized=`echo "$l"|grep "("`;
+  if [ -n "$isparametrized" ]; then
+    echo "$l"|cut -d")" -f1|while read pf
+    do
+     echo "$pf )";
+    done
+  else
+    echo "$l";
+  fi
+ done|while read specFunc
+ do
+  funcName=`echo "$specFunc"|cut -d"(" -f1`;
+  substFunc=`cat "$TMP_FPPLIST"|grep "^$PREFIX$funcName[ \t]*("|cut -d"(" -f1`;
+  if [ -n "$substFunc" ]; then
+   echo "$SPEC_DEF $specFunc $substFunc" >> "$SPEC_DUMPED_TARGET";
+  else
+   echo "# $PREFIX$funcName not implemented yet" >> "$SPEC_DUMPED_TARGET";
+  fi
+ done
+fi
+
 #cat "$TMP_DEPS"|sort|uniq;
-#cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
-#cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
+cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
+cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
 
 cd ..
 CleanUpTemps "$TS";

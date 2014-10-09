@@ -1,22 +1,31 @@
-wrappit4wine
-============
-> @author Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>
+#winewrap
+**Author**: Markus Kitsinger <swooshycueb@tearmedia.info>  
+**Original author**: Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>  
+**Version**: 1.1.0
 
-> @author Markus Kitsinger <swooshycueb@tearmedia.info>
+##Description
+winewrap is a fork of sjurajpuchky's wrappit4wine.  
+It consists of two scripts, winewrap-dll and winewrap-so. These scripts generate files useful when creating wine wrappers for native libraries. winewrap-dll generates files using a windows dynamic link library, and winewrap-so generates files using a native library.
 
-> @desc   Script to generate a dll to native library wrapper for wine
+You can run the scripts with "--help" for usage information.
 
-> @home   https://github.com/SwooshyCueb/wrappit4wine
+##Changelog
+**1.1.0**: winewrap is now a full on fork of wrappit4wine rather than just a "modified version".  
+> * wrappit4wine script renamed to winewrap-dll
+* new winewrap-so script for generation without the use of a windows library
+* new format for arguments
+ * prefix now optional
+ * no more dependence on environment variables to pass in information
+ * no more options set by variables in the scripts
+ * you can now specify multiple library and includes search directories
+* various miscellaneous fixes
 
-> @version 1.0.1+ors1
+**1.0.1+ors1**: First version of the winewrap version of wrappit4wine
+> * switched to perl regex for grabbing prototypes
+* overhauled source generation
+* fixed expr commands
+* switched to a more detailed dialog for progress information
+* progress information in more places
 
-Sample of usage
----------------
-
-./wrappit4wine test.dll /usr/include /usr/lib
-
-Changelog
----------
-> 1.0.1+ors1 Switched to perl regex for grabbing prototypes. Overhauled source generation. Did fancy things with dialog. Fixed expr commands.
-
-> 1.0.1 Fixed generating of spec
+**1.0.1**: Base version of wrappit4wine used for winewrap
+> * Fixed generating of spec
