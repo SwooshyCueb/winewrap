@@ -343,6 +343,7 @@ CONDDEF="$5";
 SOURCEPATHS="$3";
 LIBPATHS="$4";
 TMP_SLIST="/tmp/$TS.slist";
+TMP_SLIST_DUMPED="/tmp/$TS.slist.dumped";
 TMP_FPPLIST="/tmp/$TS.fpplist";
 TMP_DEPS="/tmp/$TS.deps";
 TMP_LIBDEPS="/tmp/$TS.libs";
@@ -543,3 +544,4 @@ cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
 cd ..
 CleanUpTemps "$TS";
 if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi
+
