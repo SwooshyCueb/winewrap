@@ -339,7 +339,7 @@ function winedumpline() { # $1 winedump output "line"
 
 # Initialize
 dllname=`basename "$dll"`
-dirname=`echo "$dllname"|cut -d\. -f1`;
+dirname=`echo "$dllname"|sed -e "s/\.so\.*.*//g"`;
 
 if [ -z "$desc" ]; then
  desc="Wrapped $dllname library for wine";
