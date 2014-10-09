@@ -329,7 +329,6 @@ LIBDIRS_TARGET="$dirname.libdirs"
 CONDDEF="$5";
 SOURCEPATHS="$3";
 LIBPATHS="$4";
-TMP_HLIST="/tmp/$TS.hlist";
 TMP_SLIST="/tmp/$TS.slist";
 TMP_FPPLIST="/tmp/$TS.fpplist";
 TMP_DEPS="/tmp/$TS.deps";
