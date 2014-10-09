@@ -7,7 +7,7 @@
 winewrap is a fork of sjurajpuchky's wrappit4wine.  
 It consists of two scripts, winewrap-dll and winewrap-so. These scripts generate files useful when creating wine wrappers for native libraries. winewrap-dll generates files using a windows dynamic link library, and winewrap-so generates files using a native library.
 
-You can run the scripts with "--help" for usage information.
+You can run the scripts with "--help" or see the man pages for usage information.
 
 ##Changelog
 **1.1.0**: winewrap is now a full on fork of wrappit4wine rather than just a "modified version".  
