@@ -234,6 +234,13 @@ function progdisplay { # $1=title $2=text $3=percent
  fi
 }
 
+#clear, but only if we're showing progress
+function cls {
+ if [ -z "$NOPROGRESS" ]; then
+  clear
+ fi
+}
+
 #parse output of winedump when generating spec from winedump
 function winedumpline() { # $1 winedump output "line"
  wdlline_func=`echo $1 | grep -e ".*'.*'.*"|cut -d\' -f2`
@@ -329,7 +336,7 @@ if [ ! -d "$dirname" ]; then
  rm *.c 2> /dev/null
  rm *.h 2> /dev/null
  rm Makefile.in 2> /dev/null
- clear
+ cls
 else
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$dllname\ZB \Z1already exists.\Zn" 6 35
  exit 2;
@@ -379,7 +386,7 @@ do
  p=`expr $c / $cmax`
  progstatus "3"
 done
-clear
+cls
 
 # Let's make sure we actually have some functions to wrap
 cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
