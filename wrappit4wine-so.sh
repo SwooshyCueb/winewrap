@@ -187,7 +187,7 @@ function progdisplay { # $1=title $2=text $3=percent
 
 # Initialize
 soname=`basename "$1"`;
-dirname=`echo "$soname"|sed -e "s/\.so\.*.*//g"`;
+dirname="$2";
 
 if [ -z "$DATE" ]; then
  DATE=`date`;
