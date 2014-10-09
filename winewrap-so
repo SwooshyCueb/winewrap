@@ -2,7 +2,7 @@
 #
 # @description Script to generate a dll to native library wrapper for wine from a native library
 # @copyright (c) 2014 Juraj Puchky - Devtech <sjurajpuchky@seznam.cz>
-# @copyright (c) 2014 Markus Kitsinger <swooshycueb@tearmedia.info>
+# @copyright (c) 2014 Markus Kitsinger <root@swooshalicio.us>
 # @license GPLv3
 #
 scriptname="winewrap-so"

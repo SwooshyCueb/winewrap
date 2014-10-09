@@ -1,5 +1,5 @@
 #winewrap
-**Author**: Markus Kitsinger <swooshycueb@tearmedia.info>  
+**Author**: Markus Kitsinger <root@swooshalicio.us>  
 **Original author**: Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>  
 **Version**: 1.1.0
 
