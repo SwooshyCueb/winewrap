@@ -21,7 +21,7 @@ if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
 $scriptname
 ============
-Version 1.0.1
+Version 1.0.1+ors1
 
  Usage: $0 [native library] [wrapper name] [Function prefix] [Include directory] [DEF]
  Legend:
