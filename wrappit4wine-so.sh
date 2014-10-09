@@ -15,19 +15,19 @@ noheader="yes"
 tracething="yes"
 
 
-if [ -z "$3" ] || [ "$1" == "help" ]; then
+if [ -z "$4" ] || [ "$1" == "help" ]; then
  cat << _EOF_
 $scriptname 
 ============
 Version 1.0.1
 
- Usage: $0 [native library] [Function prefix] [Include directory] [DEF]
+ Usage: $0 [native library] [wrapper name] [Function prefix] [Include directory] [DEF]
  Legend:
 	Function prefix   - String prepended to wrapper function names
 	Include directory - Directory containing headers with prototypes for functions in the dll
 	DEF:optional      - Compilation conditional, depending on this definition
  Sample:
-	$0 /usr/lib/x86_64-linux-gnu/libgtk-x11-2.0.so GTK2_ /usr/include/gtk-2.0
+	$0 /usr/lib/x86_64-linux-gnu/libgtk-x11-2.0.so libgtk-win32-2.0 GTK2_ /usr/include/gtk-2.0
  Commands:
 	help - print this usage screen
  Requirements:
@@ -50,3 +50,4 @@ Version 1.0.1
 _EOF_
  exit 1;
 fi
+
