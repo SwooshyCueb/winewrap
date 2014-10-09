@@ -401,7 +401,7 @@ done|while read specFunc
 do
  funcName=`echo "$specFunc"|cut -d"(" -f1`;
  substFunc=`cat "$TMP_FPPLIST"|grep "^$PREFIX$funcName("|cut -d"(" -f1`;
- specParams=`cat "$TMP_SLIST_DUMPED"|grep "$PREFIX$funcName"|prepareSpecParamsFromSourceDef`;
+ specParams=`cat "$TMP_WRAPED_DEFS"|grep "$PREFIX$funcName"|prepareSpecParamsFromSourceDef`;
  if [ -n "$substFunc" ]; then
   echo "$SPEC_DEF $specFunc($specParams) $substFunc";
  else
@@ -410,8 +410,8 @@ do
 done > "$SPEC_TARGET"
 
 #cat "$TMP_DEPS"|sort|uniq;
-cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
-cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
+#cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
+#cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
 
 cd ..
 CleanUpTemps "$TS";
