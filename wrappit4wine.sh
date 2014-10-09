@@ -279,7 +279,9 @@ HOME=`cat "/tmp/$TS.form"|head -6|tail -1`;
 fi
 
 SPEC="$dirname.spec.orig";
+SPEC_DUMPED="$dirname.spec.dumped.orig"
 SPEC_TARGET="$dirname.spec";
+SPEC_DUMPED_TARGET="$dirname.spec.dumped"
 FUNCLIST_TARGET="$dirname.func";
 
 if [ ! -d "$dirname" ]; then
