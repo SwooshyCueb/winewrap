@@ -378,3 +378,36 @@ do
  echo "}" >> "$C_TARGET";
  echo >> "$C_TARGET"
 done
+
+# Fixing spec file
+SPEC_DEF="@";
+cat "$FUNCLIST_TARGET"|while read l
+do
+ isparametrized=`echo "$l"|grep "("`; 
+ if [ -n "$isparametrized" ]; then 
+   echo "$l"|cut -d")" -f1|while read pf
+   do
+    echo "$pf )";
+   done
+ else
+   echo "$l"; 
+ fi
+done|while read specFunc
+do
+ funcName=`echo "$specFunc"|cut -d"(" -f1`;
+ substFunc=`cat "$TMP_FPPLIST"|grep "^$PREFIX$funcName("|cut -d"(" -f1`;
+ specParams=`cat "$TMP_SLIST_DUMPED"|grep "$PREFIX$funcName"|prepareSpecParamsFromSourceDef`;
+ if [ -n "$substFunc" ]; then
+  echo "$SPEC_DEF $specFunc($specParams) $substFunc";
+ else
+  echo "# $PREFIX$funcName not implemented yet";
+ fi
+done > "$SPEC_TARGET"
+
+#cat "$TMP_DEPS"|sort|uniq;
+cat "$TMP_LIBDEPS"|sort|uniq > "$LIBS_TARGET"
+cat "$TMP_LIBDEPPATHS"|sort|uniq > "$LIBDIRS_TARGET"
+
+cd ..
+CleanUpTemps "$TS";
+if [ -z "$NOPROGRESS" ]; then dialog --colors --backtitle "$scriptname" --title "Success!" --infobox "\ZbYour wrapper was generated successfully.\Zn" 11 50; fi
