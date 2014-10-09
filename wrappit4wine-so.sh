@@ -252,3 +252,25 @@ TMP_DEPS="/tmp/$TS.deps";
 TMP_LIBDEPS="/tmp/$TS.libs";
 TMP_LIBDEPPATHS="/tmp/$TS.libpaths";
 TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
+
+# Gather header dependencies
+c=0;
+p=0;
+cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
+proginit
+cat "$FUNCLIST_TARGET"|while read funcName
+do
+ progpush "$funcName" "-0"
+ progdisplay "Preparing dependencies" "Current operation:\nIdentifying required headers..." "$p"
+ lookupForSourceDeps "$funcName" >> "$TMP_DEPS"
+ c=`expr $c + 50`;
+ p=`expr $c / $cmax`
+ progstatus "-50"
+ progdisplay "Preparing dependencies" "Current operation:\nSearching for function declaration..." "$p"
+ lookupForWrappedSourceDefinition "$funcName" >> "$TMP_WRAPED_DEFS"
+ c=`expr $c + 50`
+ p=`expr $c / $cmax`
+ progstatus "3"
+done
+clear
+
