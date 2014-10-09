@@ -182,3 +182,73 @@ function progdisplay { # $1=title $2=text $3=percent
          "${func[0]}"  "${status[0]}"
  fi
 }
+
+# Initialize
+soname=`basename "$1"`;
+dirname=`echo "$soname"|sed -e "s/\.so\.*.*//g"`;
+
+if [ -z "$DATE" ]; then
+ DATE=`date`;
+fi
+if [ -z "$AUTHOR" ]; then
+ AUTHOR=`whoami`;
+fi
+if [ -z "$SEE" ]; then
+ SEE="Wrapped $soname library for wine";
+fi
+if [ -z "$LICENSE" ]; then
+ LICENSE="GPLv3";
+fi
+if [ -z "$COPY" ]; then
+ YEAR=`date +%Y`;
+ COPY="(c) $YEAR $AUTHOR";
+fi
+if [ -z "$WWW" ]; then
+ WWW="http://";
+fi
+
+TS=`date +%s%N`;
+PREFIX="$2";
+
+if [ -z "$NOTEDIT" ]; then
+dialog --colors --backtitle "$scriptname" --title "Information" --form "Provide information about the wrapper" 25 60 8 "Author:" 1 1 "$AUTHOR" 1 25 25 50 "Date:" 2 1 "$DATE" 2 25 25 50 "Description:" 3 1 "$SEE" 3 25 25 255 "License:" 4 1 "$LICENSE" 4 25 25 80 "Copyright:" 5 1 "$COPY" 5 25 25 160 "Website:" 6 1 "$WWW" 6 25 25 160 2>"/tmp/$TS.form"
+AUTHOR=`cat "/tmp/$TS.form"|head -1|tail -1`;
+DATE=`cat "/tmp/$TS.form"|head -2|tail -1`;
+SEE=`cat "/tmp/$TS.form"|head -3|tail -1`;
+LICENSE=`cat "/tmp/$TS.form"|head -4|tail -1`;
+COPY=`cat "/tmp/$TS.form"|head -5|tail -1`;
+HOME=`cat "/tmp/$TS.form"|head -6|tail -1`;
+fi
+
+SPEC_TARGET="$dirname.spec";
+FUNCLIST_TARGET="$dirname.func";
+
+if [ ! -d "$dirname" ]; then
+ mkdir "$dirname"
+ cp "$1" "$dirname"
+ cd "$dirname" && nm -D --defined-only "$soname"|awk '{ print $3 }' > "$FUNCLIST_TARGET"
+ cmax=`cat "$FUNCLIST_TARGET"|wc -l`;
+ rm -f "$soname"
+ rm *.c 2> /dev/null
+ rm *.h 2> /dev/null
+ rm Makefile.in 2> /dev/null
+ clear
+else
+ dialog --colors --backtitle "$scriptname" --title "Error" --infobox "\n\Z1Folder \Zn\Zb$dirname\ZB \Z1for \Zn\Zb$soname\ZB \Z1already exists.\Zn" 6 35
+ exit 2;
+fi
+
+C_TARGET="$dirname.c";
+H_TARGET="$dirname.h";
+LIBS_TARGET="$dirname.libs"
+LIBDIRS_TARGET="$dirname.libdirs"
+CONDDEF="$5";
+SOURCEPATHS="$3";
+LIBPATHS="$4";
+TMP_HLIST="/tmp/$TS.hlist";
+TMP_SLIST="/tmp/$TS.slist";
+TMP_FPPLIST="/tmp/$TS.fpplist";
+TMP_DEPS="/tmp/$TS.deps";
+TMP_LIBDEPS="/tmp/$TS.libs";
+TMP_LIBDEPPATHS="/tmp/$TS.libpaths";
+TMP_WRAPED_DEFS="/tmp/$TS.wrappeddefs";
