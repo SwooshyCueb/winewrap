@@ -186,6 +186,7 @@ newline='
 #Progress dialog stuff
 progh="20"
 progw="80"
+progoverexert="70000000"
 
 function proginit() {
  func=("-" "-" "-" "-" "-" "-" "-" "-" "-" "-")
@@ -208,7 +209,7 @@ function progstatus() { #$1=status for func[0]
 
 function progdisplay { # $1=title $2=text $3=percent
  newprogdate=`date '+%s%N'`
- if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "60000000" ]; then
+ if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "progoverexert" ]; then
   clear
   dialog --colors --backtitle "$scriptname" \
          --title "$1" \
