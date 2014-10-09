@@ -42,7 +42,7 @@ Version 1.0.1
 	sed
 	tr
 	grep
-  perl
+	perl
 	dialog
 	Header files or development package be installed
 	Original windows dll
