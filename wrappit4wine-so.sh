@@ -41,7 +41,7 @@ Version 1.0.1
 	Wrapped libraries
  Env:
 	AUTHOR      - Who generated the wrapper
-	SEE         - What is the wrapper's function
+	SEE         - What is the function of the wrapper
 	LICENSE     - What is the licence?
 	COPY        - Copyright
 	DATE        - Date of creation
