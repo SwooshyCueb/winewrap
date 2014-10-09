@@ -399,7 +399,7 @@ do
 done|while read specFunc
 do
  funcName=`echo "$specFunc"|cut -d"(" -f1`;
- substFunc=`cat "$TMP_FPPLIST"|grep "^$PREFIX$funcName("|cut -d"(" -f1`;
+ substFunc=`cat "$TMP_FPPLIST"|grep "^$PREFIX$funcName[ \t]*("|cut -d"(" -f1`;
  specParams=`cat "$TMP_WRAPED_DEFS"|grep "$PREFIX$funcName"|prepareSpecParamsFromSourceDef`;
  if [ -n "$substFunc" ]; then
   echo "$SPEC_DEF $specFunc($specParams) $substFunc";
