@@ -2,7 +2,7 @@
 #
 # @author Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>
 # @author Markus Kitsinger <swooshycueb@tearmedia.info>
-# @description Script to generate a dll to native library wrapper for wine
+# @description Script to generate a dll to native library wrapper for wine from a dll
 # @copyright (c) 2014 Juraj Puchky - Devtech
 # @copyright (c) 2014 Markus Kitsinger
 # @license GPLv3
