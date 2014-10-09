@@ -216,7 +216,7 @@ function progstatus() { #$1=status for func[0]
 #displays the progress dialog
 function progdisplay { # $1=title $2=text $3=percent
  newprogdate=`date '+%s%N'`
- if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "progoverexert" ]; then
+ if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "$progoverexert" ]; then
   dialog --colors --backtitle "$scriptname" \
          --title "$1" \
          --mixedgauge "$2" \
