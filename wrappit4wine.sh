@@ -178,6 +178,10 @@ fi
 #Making sure this gets initialized early
 cmax=
 
+#Newline variable
+newline='
+'
+
 #Progress dialog stuff
 progh="20"
 progw="80"
