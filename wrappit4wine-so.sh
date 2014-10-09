@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+# @author Juraj Puchký - Devtech <sjurajpuchky@seznam.cz>
 # @author Markus Kitsinger <swooshycueb@tearmedia.info>
 # @description Script to generate a dll to native library wrapper for wine from a native library
 # @copyright (c) 2014 Markus Kitsinger
