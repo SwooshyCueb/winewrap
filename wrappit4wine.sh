@@ -186,7 +186,7 @@ newline='
 #Progress dialog stuff
 progh="20"
 progw="80"
-progoverexert="70000000"
+progoverexert="100000000"
 
 function proginit() {
  func=("-" "-" "-" "-" "-" "-" "-" "-" "-" "-")
