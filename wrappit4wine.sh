@@ -175,19 +175,23 @@ if [ ! -d "$4" ]; then
  exit 2;
 fi
 
-#Making sure this gets initialized early
-cmax=
-progdate=`date '+%s%N'`
-
 #Newline variable
 newline='
 '
 
 #Progress dialog stuff
+#width and height of progress message box
 progh="20"
 progw="80"
+#progoverexert is the minimum amount of time in nanoseconds that must pass between executions of dialog
+#this exists because for some reason executing dialog repeatedly too quickly will cause some weird issues
+#if enough time has not passed, execution of dialog will simply be skipped.
 progoverexert="100000000"
+#Initializing these early
+cmax=
+progdate=`date '+%s%N'`
 
+#Resets the data for starting a new series of progress updates
 function proginit() {
  func=("-" "-" "-" "-" "-" "-" "-" "-" "-" "-")
  status=("8" "8" "8" "8" "8" "8" "8" "8" "8" "8")
@@ -195,6 +199,7 @@ function proginit() {
  c="0"
 }
 
+#pushes a new pair of operation values for progress updates
 function progpush() { # $1=newfunc $2=status
  func=("$1" "${func[0]}" "${func[1]}" "${func[2]}" "${func[3]}" \
   "${func[4]}" "${func[5]}" "${func[6]}" "${func[7]}" "${func[8]}")
@@ -203,10 +208,12 @@ function progpush() { # $1=newfunc $2=status
     "${status[7]}" "${status[8]}")
 }
 
+#sets the status of the current operation for progress updates
 function progstatus() { #$1=status for func[0]
  status[0]=$1
 }
 
+#displays the progress dialog
 function progdisplay { # $1=title $2=text $3=percent
  newprogdate=`date '+%s%N'`
  if [ -z "$NOPROGRESS" ] && [ "`expr $newprogdate - $progdate`" -gt "progoverexert" ]; then
@@ -227,7 +234,8 @@ function progdisplay { # $1=title $2=text $3=percent
  fi
 }
 
-function winedumpline() {
+#parse output of winedump when generating spec from winedump
+function winedumpline() { # $1 winedump output "line"
  wdlline_func=`echo $1 | grep -e ".*'.*'.*"|cut -d\' -f2`
  if [[ $1 == \[OK\]* ]] || [[ $1 == \[Not\ Found\]* ]] || [[ $1 == \[Ignoring\] ]]; then
   c=`expr $c + 100`;
@@ -291,6 +299,8 @@ SPEC_TARGET="$dirname.spec";
 SPEC_DUMPED_TARGET="$dirname.spec.dumped"
 FUNCLIST_TARGET="$dirname.func";
 
+# generation of function list
+# original winedump spec file also generated here
 if [ ! -d "$dirname" ]; then
  mkdir "$dirname"
  cp "$1" "$dirname"
@@ -370,8 +380,8 @@ do
 done
 clear
 
+# Let's make sure we actually have some functions to wrap
 cmax=`cat "$TMP_WRAPED_DEFS"|wc -l`;
-
 if [ $cmax == "0" ]; then
  dialog --colors --backtitle "$scriptname" --title "Error" --infobox "$scriptname was unable to find any wrappable functions in $dllname with the given headers and libraries." 6 35
  exit 1
