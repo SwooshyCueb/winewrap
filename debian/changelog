@@ -1,0 +1,14 @@
+winewrap (1.1.0) unstable; urgency=medium
+
+  * First debianized version
+  * wrappit4wine script renamed to winewrap-dll
+  * new winewrap-so script for generation without the use of a windows library
+  * new format for arguments
+    - prefix now optional
+    - no more dependence on environment variables to pass in information
+    - no more options set by variables in the scripts
+    - you can now specify multiple library and includes search directories
+  * various miscellaneous fixes
+
+ -- SwooshyCueb <swooshycueb@tearmedia.info>  Thu, 09 Oct 2014 12:31:03 -0500
+

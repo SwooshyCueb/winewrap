@@ -1,0 +1,60 @@
+Source: winewrap
+Section: otherosfs
+Priority: extra
+Maintainer: Markus Kitsinger <root@swooshalicio.us>
+Uploaders:
+ Markus Kitsinger <root@swooshalicio.us>
+Build-Depends:
+ debhelper (>= 9)
+Standards-Version: 3.9.5
+Homepage: https://github.com/SwooshyCueb/winewrap
+
+Package: winewrap-dll
+Section: otherosfs
+Architecture: all
+Depends:
+ wine1.7,
+ gawk,
+ perl,
+ dialog,
+ ${shlibs:Depends}, ${misc:Depends}
+Suggests:
+ winewrap-so,
+ wine1.7-dev
+Description: Generate files useful for creating wine wrappers
+ Generates files useful for the creation of wine dll native library
+ wrappers. winewrap-dll generates these files from Windows dynamic link
+ libraries.
+ .
+ winewrap is a fork of wrappit4wine
+
+Package: winewrap-so
+Section: otherosfs
+Architecture: all
+Depends:
+ gawk,
+ perl,
+ dialog,
+ ${shlibs:Depends}, ${misc:Depends}
+Recommends:
+ wine1.7
+Suggests:
+ winewrap-dll,
+ wine1.7-dev
+Description: Generate files useful for creating wine wrappers
+ Generates files useful for the creation of wine dll native library
+ wrappers. winewrap-so generates these files from native libraries.
+ .
+ winewrap is a fork of wrappit4wine
+
+Package: winewrap
+Section: otherosfs
+Architecture: all
+Depends:
+ winewrap-so, winewrap-dll,
+ ${shlibs:Depends}, ${misc:Depends}
+Description: Generate files useful for creating wine wrappers
+ Generates files useful for the creation of wine dll native library
+ wrappers. This package depends on both winewrap scripts.
+ .
+ winewrap is a fork of wrappit4wine
